@@ -189,6 +189,26 @@ export default function App() {
     api.runTrustAction(matchId, action).then(commitSnapshot);
   }
 
+  function handleNotificationRead(notificationId) {
+    api.markNotificationRead(notificationId).then(commitSnapshot);
+  }
+
+  function handleFavoritePartner(profileId) {
+    api.favoritePartner(profileId).then(commitSnapshot);
+  }
+
+  function handleReInvitePartner(profileId) {
+    api.reInvitePartner(profileId).then(commitSnapshot);
+  }
+
+  function handleSaveScorecard(roundId, scores) {
+    api.saveScorecard(roundId, scores).then(commitSnapshot);
+  }
+
+  function handleCancelMatch(matchId) {
+    api.cancelMatch(matchId).then(commitSnapshot);
+  }
+
   const activeMatch = snapshot?.matches?.find((match) => match.id === activeMatchId) ?? null;
 
   if (!snapshot) {
@@ -227,6 +247,9 @@ export default function App() {
       matches={snapshot.matches}
       previousPartners={snapshot.previousPartners ?? []}
       teeTime={snapshot.teeTime}
+      notifications={snapshot.notifications ?? []}
+      courses={snapshot.courses ?? []}
+      roundHistory={snapshot.roundHistory ?? []}
       activeMatch={activeMatch}
       activeMessages={activeMessages}
       chatLoading={chatLoading}
@@ -234,6 +257,11 @@ export default function App() {
         onSendMessage={handleSendMessage}
         onSubmitRating={handleSubmitRating}
         onTrustAction={handleTrustAction}
+        onNotificationRead={handleNotificationRead}
+        onFavoritePartner={handleFavoritePartner}
+        onReInvitePartner={handleReInvitePartner}
+        onSaveScorecard={handleSaveScorecard}
+        onCancelMatch={handleCancelMatch}
         onTeeTimeUpdate={handleTeeTimeUpdate}
         onSettingsChange={handleUserChange}
       onFilterChange={handleFilterChange}

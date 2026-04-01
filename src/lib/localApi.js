@@ -1,4 +1,12 @@
-import { defaultTeeTime, defaultUser, previousPartnersSeed, profiles } from "../data/profiles";
+import {
+  coursePagesSeed,
+  defaultTeeTime,
+  defaultUser,
+  notificationsSeed,
+  previousPartnersSeed,
+  profiles,
+  roundHistorySeed
+} from "../data/profiles";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -128,7 +136,10 @@ function emptySnapshot() {
     deck: [],
     matches: [],
     previousPartners: [],
-    teeTime: clone(defaultTeeTime)
+    teeTime: clone(defaultTeeTime),
+    notifications: [],
+    courses: [],
+    roundHistory: []
   };
 }
 
@@ -214,7 +225,10 @@ function snapshotForToken(token) {
       })
       .filter(Boolean),
     previousPartners: buildPreviousPartners(userState),
-    teeTime: clone(userState.teeTime)
+    teeTime: clone(userState.teeTime),
+    notifications: clone(userState.notifications),
+    courses: clone(userState.courses),
+    roundHistory: clone(userState.roundHistory)
   };
 }
 
@@ -260,6 +274,10 @@ export const localApi = {
       messageThreads: new Map(),
       blockedProfiles: new Set(),
       trustEvents: [],
+      notifications: clone(notificationsSeed),
+      courses: clone(coursePagesSeed),
+      roundHistory: clone(roundHistorySeed),
+      favorites: new Set(),
       user: { ...clone(defaultUser), email: next.email },
       teeTime: { ...buildTeeTime({ ...clone(defaultUser), email: next.email }), id: createToken() }
     });
@@ -333,6 +351,7 @@ export const localApi = {
       userState.matches.unshift({
         id: matchId,
         profileId: topProfile.id,
+        status: "matched",
         ratings: {
           average: null,
           count: 0,
@@ -349,6 +368,14 @@ export const localApi = {
           sentAt: new Date().toISOString()
         }
       ]);
+      userState.notifications.unshift({
+        id: createToken(),
+        title: "New match created",
+        body: `${topProfile.name} is ready to coordinate this round.`,
+        timeLabel: "Just now",
+        type: "match",
+        unread: true
+      });
     }
     return Promise.resolve(snapshotForToken(this.token));
   },
@@ -415,6 +442,84 @@ export const localApi = {
       createdAt: new Date().toISOString()
     });
 
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  markNotificationRead(notificationId) {
+    const userState = requireUser(this.token);
+    userState.notifications = userState.notifications.map((notification) =>
+      notification.id === notificationId ? { ...notification, unread: false } : notification
+    );
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  favoritePartner(profileId) {
+    const userState = requireUser(this.token);
+    userState.favorites.add(profileId);
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Favorite saved",
+      body: "This golfer will be easier to find again in future rounds.",
+      timeLabel: "Just now",
+      type: "favorite",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  reInvitePartner(profileId) {
+    const userState = requireUser(this.token);
+    const profile = profiles.find((entry) => entry.id === profileId);
+    if (!profile) return Promise.resolve(snapshotForToken(this.token));
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Re-invite sent",
+      body: `A demo re-invite was sent to ${profile.name} for your next round.`,
+      timeLabel: "Just now",
+      type: "invite",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  saveScorecard(roundId, scores) {
+    const userState = requireUser(this.token);
+    userState.roundHistory = userState.roundHistory.map((round) => {
+      if (round.id !== roundId) return round;
+      const safeScores = scores.map((value) => Number(value) || 0);
+      return {
+        ...round,
+        scorecard: {
+          ...round.scorecard,
+          scores: safeScores,
+          total: safeScores.reduce((sum, value) => sum + value, 0)
+        }
+      };
+    });
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Scorecard saved",
+      body: "Your round history now includes the updated scorecard.",
+      timeLabel: "Just now",
+      type: "scorecard",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  cancelMatch(matchId) {
+    const userState = requireUser(this.token);
+    const target = userState.matches.find((match) => match.id === matchId);
+    if (!target) return Promise.reject(new Error("Match not found"));
+    userState.matches = userState.matches.filter((match) => match.id !== matchId);
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Match cancelled",
+      body: "This tee time pairing was cancelled in the demo flow.",
+      timeLabel: "Just now",
+      type: "trust",
+      unread: true
+    });
     return Promise.resolve(snapshotForToken(this.token));
   }
 };

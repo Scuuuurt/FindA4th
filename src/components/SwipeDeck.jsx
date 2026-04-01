@@ -4,7 +4,7 @@ function labelize(value) {
   return value.replace("_", " ");
 }
 
-function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
+function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenProfile }) {
   const isTop = offset === 0;
   const style = isTop
     ? { transform: `translateX(${dragX}px) rotate(${dragX / 18}deg)` }
@@ -91,12 +91,16 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
             <span>Typical window</span>
           </div>
         </div>
+
+        <button className="ghost-button compact detail-button" type="button" onClick={() => onOpenProfile?.(profile)}>
+          View full profile
+        </button>
       </div>
     </article>
   );
 }
 
-export default function SwipeDeck({ deck, onSwipe }) {
+export default function SwipeDeck({ deck, onSwipe, onOpenProfile }) {
   const [dragState, setDragState] = useState({ dragging: false, startX: 0, x: 0 });
 
   const topCard = deck[0];
@@ -147,6 +151,7 @@ export default function SwipeDeck({ deck, onSwipe }) {
                 dragX={index === 0 ? dragState.x : 0}
                 dragging={dragState.dragging}
                 onPointerDown={handlePointerDown}
+                onOpenProfile={onOpenProfile}
               />
             ))
             .reverse()

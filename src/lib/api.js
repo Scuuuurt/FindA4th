@@ -116,6 +116,21 @@ const httpApi = {
       method: "POST",
       body: JSON.stringify({ action })
     });
+  },
+  markNotificationRead(notificationId) {
+    return localApi.markNotificationRead(notificationId);
+  },
+  favoritePartner(profileId) {
+    return localApi.favoritePartner(profileId);
+  },
+  reInvitePartner(profileId) {
+    return localApi.reInvitePartner(profileId);
+  },
+  saveScorecard(roundId, scores) {
+    return localApi.saveScorecard(roundId, scores);
+  },
+  cancelMatch(matchId) {
+    return localApi.cancelMatch(matchId);
   }
 };
 
