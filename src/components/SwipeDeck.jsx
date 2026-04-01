@@ -1,0 +1,130 @@
+import { useState } from "react";
+
+function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
+  const isTop = offset === 0;
+  const style = isTop
+    ? { transform: `translateX(${dragX}px) rotate(${dragX / 18}deg)` }
+    : undefined;
+
+  const className = [
+    "profile-card",
+    offset === 1 ? "is-next" : "",
+    offset >= 2 ? "is-back" : "",
+    isTop && dragging ? "is-dragging" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <article className={className} style={style} onPointerDown={isTop ? onPointerDown : undefined}>
+      <div className="card-image" style={{ backgroundImage: profile.image }}>
+        <div className="image-overlay"></div>
+        <div className="badge-row">
+          <span className="type-badge">{profile.type}</span>
+          <span className="slots-badge">
+            {profile.slots} open slot{profile.slots > 1 ? "s" : ""}
+          </span>
+        </div>
+      </div>
+
+      <div className="card-body">
+        <div className="card-title-row">
+          <div>
+            <h3 className="profile-name">
+              {profile.type === "Single" ? `${profile.name}, ${profile.age}` : profile.name}
+            </h3>
+            <p className="profile-meta">
+              {profile.course} · {profile.teeTime}
+            </p>
+          </div>
+          <div className="profile-handicap">{profile.handicap}</div>
+        </div>
+
+        <p className="profile-bio">{profile.bio}</p>
+
+        <div className="detail-grid">
+          <div className="detail-pill">{profile.fit}</div>
+          <div className="detail-pill">{profile.distanceMiles} miles away</div>
+          <div className="detail-pill">Home: {profile.homeCourse}</div>
+          <div className="detail-pill">Vibe: {profile.vibe}</div>
+          <div className="detail-pill">Pace: {profile.pace}</div>
+        </div>
+
+        <div className="tag-row">
+          {profile.tags.map((tag) => (
+            <span className="tag" key={tag}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function SwipeDeck({ deck, onSwipe }) {
+  const [dragState, setDragState] = useState({ dragging: false, startX: 0, x: 0 });
+
+  const topCard = deck[0];
+  const laneClass =
+    dragState.x > 24 ? "swiping-right" : dragState.x < -24 ? "swiping-left" : "";
+
+  function handlePointerDown(event) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragState({ dragging: true, startX: event.clientX, x: 0 });
+  }
+
+  function handlePointerMove(event) {
+    if (!dragState.dragging) return;
+    setDragState((current) => ({
+      ...current,
+      x: event.clientX - current.startX
+    }));
+  }
+
+  function handlePointerUp() {
+    if (!dragState.dragging) return;
+    const swipeX = dragState.x;
+    setDragState({ dragging: false, startX: 0, x: 0 });
+
+    if (swipeX > 90) onSwipe("right");
+    if (swipeX < -90) onSwipe("left");
+  }
+
+  return (
+    <section
+      className={`deck-panel ${laneClass}`.trim()}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      <div className="decision-badge pass">Pass</div>
+      <div className="decision-badge connect">Connect</div>
+
+      <div className="card-stack">
+        {topCard ? (
+          deck
+            .slice(0, 3)
+            .map((profile, index) => (
+              <ProfileCard
+                key={profile.id}
+                profile={profile}
+                offset={index}
+                dragX={index === 0 ? dragState.x : 0}
+                dragging={dragState.dragging}
+                onPointerDown={handlePointerDown}
+              />
+            ))
+            .reverse()
+        ) : (
+          <div className="empty-state">
+            <div>
+              <h3>No more golfers in this lane</h3>
+              <p>Refresh the deck or loosen your filters to see more nearby golfers and groups.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
