@@ -513,6 +513,13 @@ input[type="range"] {
   font-weight: 700;
 }
 
+.posting-lead {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 56ch;
+}
+
 .profile-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

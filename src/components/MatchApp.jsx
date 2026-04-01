@@ -230,13 +230,22 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
     <section className="posting-panel">
       <div className="panel-header">
         <div>
-          <p className="topbar-label">Active posting</p>
-          <h3>Create a real tee time listing</h3>
+          <p className="topbar-label">Post A Tee Time</p>
+          <h3>
+            {user.playMode === "single"
+              ? "Post your tee time to join a group"
+              : "Post your tee time and find a 4th"}
+          </h3>
         </div>
         <div className="panel-status">
           {user.playMode === "single" ? "Single looking to join" : "Group posting live"}
         </div>
       </div>
+
+      <p className="posting-lead">
+        Add the course, date, time, and preferences so people can quickly understand the round
+        you are posting.
+      </p>
 
       <form className="profile-form" onSubmit={handleSubmit}>
         <label>
@@ -276,7 +285,7 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
           />
         </label>
         <button className="primary-button profile-span-2" type="submit">
-          Save tee time posting
+          {user.playMode === "single" ? "Post tee time to join a group" : "Post tee time and find a 4th"}
         </button>
       </form>
     </section>
@@ -566,7 +575,8 @@ export default function MatchApp({
           <h1>Fill your foursome with the right golfer, not a random extra.</h1>
           <p className="hero-text">
             FindA4th helps singles, duos, and partial groups find each other before the round.
-            Swipe through compatible players and complete your tee sheet with confidence.
+            Post a tee time with the course, date, time, and preferences, then swipe through
+            compatible players to complete your tee sheet with confidence.
           </p>
         </div>
 
@@ -618,7 +628,9 @@ export default function MatchApp({
             <div>
               <p className="topbar-label">FindA4th</p>
               <h2>Find your fourth golfer</h2>
-              <p className="topbar-subtitle">Curated matches around your tee time and playing style.</p>
+              <p className="topbar-subtitle">
+                Post a tee time and find the right fourth based on course, time, and playing style.
+              </p>
             </div>
             <div className="topbar-actions">
               <button className="ghost-button" type="button" onClick={onRefresh}>
@@ -636,7 +648,7 @@ export default function MatchApp({
 
           <section className="summary-strip">
             <article className="summary-card primary">
-              <p>{teeTime.postingType === "single" ? "Solo posting" : "Current booking"}</p>
+              <p>Posted tee time</p>
               <strong>{teeTime.dayLabel}</strong>
               {teeTime.postingType === "single" ? (
                 <span>
@@ -652,7 +664,7 @@ export default function MatchApp({
               {teeTime.note ? <em className="summary-note">"{teeTime.note}"</em> : null}
               <div className="summary-accent-row">
                 <span className="summary-chip solid">
-                  {teeTime.postingType === "single" ? "Looking for a group" : "Ready to match"}
+                  {teeTime.postingType === "single" ? "Looking for a group" : "Looking for a 4th"}
                 </span>
                 <span className="summary-chip">Verified course</span>
               </div>
