@@ -28,6 +28,10 @@ export function updateSettings(sessionToken, payload) {
   return repository.updateSettings(sessionToken, payload);
 }
 
+export function updateTeeTime(sessionToken, payload) {
+  return repository.updateTeeTime(sessionToken, payload);
+}
+
 export function setFilter(sessionToken, filter) {
   return repository.setFilter(sessionToken, filter);
 }

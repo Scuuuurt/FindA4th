@@ -25,10 +25,14 @@ create table if not exists tee_times (
   id text primary key,
   user_id text not null references app_users(id) on delete cascade,
   day_label text not null,
+  tee_date date,
+  tee_time text,
   home_course text not null,
   posting_type text not null default 'group_owner',
   golfers_committed integer not null,
   open_slots integer not null,
+  holes integer not null default 18,
+  note text default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -29,6 +29,17 @@ function filteredDeck(userState) {
   });
 }
 
+function formatDayLabel(teeDate, teeTime) {
+  if (!teeDate || !teeTime) return defaultTeeTime.dayLabel;
+  const parsed = new Date(`${teeDate}T${teeTime}:00`);
+  if (Number.isNaN(parsed.getTime())) return defaultTeeTime.dayLabel;
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(parsed);
+}
+
 function buildTeeTime(user) {
   if (user.playMode === "single") {
     return {
@@ -47,6 +58,28 @@ function buildTeeTime(user) {
     golfersCommitted,
     openSlots: Math.max(0, 4 - golfersCommitted),
     postingType: "group_owner"
+  };
+}
+
+function normalizeTeeTime(currentTeeTime, user, payload = {}) {
+  const postingState = buildTeeTime(user);
+  const teeDate = payload.teeDate ?? currentTeeTime.teeDate ?? defaultTeeTime.teeDate;
+  const teeTime = payload.teeTime ?? currentTeeTime.teeTime ?? defaultTeeTime.teeTime;
+
+  return {
+    ...clone(defaultTeeTime),
+    ...currentTeeTime,
+    ...postingState,
+    homeCourse:
+      payload.homeCourse ??
+      currentTeeTime.homeCourse ??
+      user.homeCourse ??
+      defaultTeeTime.homeCourse,
+    teeDate,
+    teeTime,
+    holes: Number(payload.holes ?? currentTeeTime.holes ?? defaultTeeTime.holes),
+    note: payload.note ?? currentTeeTime.note ?? defaultTeeTime.note,
+    dayLabel: formatDayLabel(teeDate, teeTime)
   };
 }
 
@@ -201,14 +234,24 @@ export const localApi = {
     const userState = requireUser(this.token);
     userState.onboarded = true;
     userState.user = { ...userState.user, ...clone(user) };
-    userState.teeTime = { ...userState.teeTime, ...buildTeeTime(userState.user) };
+    userState.teeTime = normalizeTeeTime(userState.teeTime, userState.user, {
+      homeCourse: userState.user.homeCourse
+    });
     return Promise.resolve(snapshotForToken(this.token));
   },
 
   updateSettings(user) {
     const userState = requireUser(this.token);
     userState.user = { ...userState.user, ...clone(user) };
-    userState.teeTime = { ...userState.teeTime, ...buildTeeTime(userState.user) };
+    userState.teeTime = normalizeTeeTime(userState.teeTime, userState.user, {
+      homeCourse: userState.user.homeCourse
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  updateTeeTime(teeTime) {
+    const userState = requireUser(this.token);
+    userState.teeTime = normalizeTeeTime(userState.teeTime, userState.user, clone(teeTime));
     return Promise.resolve(snapshotForToken(this.token));
   },
 

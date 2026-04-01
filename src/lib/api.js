@@ -75,6 +75,12 @@ const httpApi = {
       body: JSON.stringify(user)
     });
   },
+  updateTeeTime(teeTime) {
+    return request("/api/tee-times/current", {
+      method: "PATCH",
+      body: JSON.stringify(teeTime)
+    });
+  },
   setFilter(filter) {
     return request("/api/discovery/filter", {
       method: "POST",

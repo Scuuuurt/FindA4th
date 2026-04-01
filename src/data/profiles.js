@@ -113,11 +113,15 @@ export const defaultUser = {
 
 export const defaultTeeTime = {
   id: "tt-100",
+  teeDate: "2026-04-04",
+  teeTime: "08:12",
   dayLabel: "Saturday 8:12 AM",
   homeCourse: "Pebble Ridge",
   golfersCommitted: 3,
   openSlots: 1,
-  postingType: "group_owner"
+  postingType: "group_owner",
+  holes: 18,
+  note: "Early weekend round. Looking for someone easy to pair with and on time."
 };
 
 export const previousPartnersSeed = [

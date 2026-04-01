@@ -48,6 +48,17 @@ function assertRating(payload = {}) {
   }
 }
 
+function formatDayLabel(teeDate, teeTime) {
+  if (!teeDate || !teeTime) return defaultTeeTime.dayLabel;
+  const parsed = new Date(`${teeDate}T${teeTime}:00`);
+  if (Number.isNaN(parsed.getTime())) return defaultTeeTime.dayLabel;
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(parsed);
+}
+
 function userFromRow(row) {
   return {
     id: row.id,
@@ -65,11 +76,17 @@ function userFromRow(row) {
 function teeTimeFromRow(row, homeCourse) {
   return {
     id: row?.id ?? defaultTeeTime.id,
-    dayLabel: row?.day_label ?? defaultTeeTime.dayLabel,
+    teeDate: row?.tee_date ?? defaultTeeTime.teeDate,
+    teeTime: row?.tee_time ?? defaultTeeTime.teeTime,
+    dayLabel:
+      row?.day_label ??
+      formatDayLabel(row?.tee_date ?? defaultTeeTime.teeDate, row?.tee_time ?? defaultTeeTime.teeTime),
     homeCourse: row?.home_course ?? homeCourse ?? defaultTeeTime.homeCourse,
     postingType: row?.posting_type ?? defaultTeeTime.postingType,
     golfersCommitted: row?.golfers_committed ?? defaultTeeTime.golfersCommitted,
-    openSlots: row?.open_slots ?? defaultTeeTime.openSlots
+    openSlots: row?.open_slots ?? defaultTeeTime.openSlots,
+    holes: Number(row?.holes ?? defaultTeeTime.holes),
+    note: row?.note ?? defaultTeeTime.note
   };
 }
 
@@ -87,6 +104,28 @@ function buildPostingState(user) {
     postingType: "group_owner",
     golfersCommitted,
     openSlots: Math.max(0, 4 - golfersCommitted)
+  };
+}
+
+function normalizeTeeTime(currentTeeTime = defaultTeeTime, user = defaultUser, payload = {}) {
+  const postingState = buildPostingState(user);
+  const teeDate = payload.teeDate ?? currentTeeTime.teeDate ?? defaultTeeTime.teeDate;
+  const teeTime = payload.teeTime ?? currentTeeTime.teeTime ?? defaultTeeTime.teeTime;
+
+  return {
+    ...clone(defaultTeeTime),
+    ...currentTeeTime,
+    ...postingState,
+    homeCourse:
+      payload.homeCourse ??
+      currentTeeTime.homeCourse ??
+      user.homeCourse ??
+      defaultTeeTime.homeCourse,
+    teeDate,
+    teeTime,
+    holes: Number(payload.holes ?? currentTeeTime.holes ?? defaultTeeTime.holes),
+    note: payload.note ?? currentTeeTime.note ?? defaultTeeTime.note,
+    dayLabel: formatDayLabel(teeDate, teeTime)
   };
 }
 
@@ -318,11 +357,12 @@ function createMemoryRepository() {
       };
 
       state.users.set(userId, nextAccount);
-      state.teeTimes.set(userId, {
-        ...state.teeTimes.get(userId),
-        homeCourse: nextAccount.homeCourse || defaultTeeTime.homeCourse,
-        ...buildPostingState(nextAccount)
-      });
+      state.teeTimes.set(
+        userId,
+        normalizeTeeTime(state.teeTimes.get(userId), nextAccount, {
+          homeCourse: nextAccount.homeCourse || defaultTeeTime.homeCourse
+        })
+      );
 
       return snapshotForUser(userId);
     },
@@ -346,12 +386,22 @@ function createMemoryRepository() {
       };
 
       state.users.set(userId, nextAccount);
-      state.teeTimes.set(userId, {
-        ...state.teeTimes.get(userId),
-        homeCourse: nextAccount.homeCourse || defaultTeeTime.homeCourse,
-        ...buildPostingState(nextAccount)
-      });
+      state.teeTimes.set(
+        userId,
+        normalizeTeeTime(state.teeTimes.get(userId), nextAccount, {
+          homeCourse: nextAccount.homeCourse || defaultTeeTime.homeCourse
+        })
+      );
 
+      return snapshotForUser(userId);
+    },
+
+    async updateTeeTime(sessionToken, payload = {}) {
+      const userId = sessionUserId(sessionToken);
+      if (!userId) throw new Error("Authentication required");
+
+      const account = state.users.get(userId);
+      state.teeTimes.set(userId, normalizeTeeTime(state.teeTimes.get(userId), account, payload));
       return snapshotForUser(userId);
     },
 
@@ -518,6 +568,7 @@ function createPostgresRepository() {
       query(
         `
           select id, day_label, home_course, posting_type, golfers_committed, open_slots
+          , tee_date, tee_time, holes, note
           from tee_times
           where user_id = $1
           order by created_at asc
@@ -808,6 +859,46 @@ function createPostgresRepository() {
       if (!userId) throw new Error("Authentication required");
       const snapshot = await snapshotForUser(userId);
       return [snapshot.teeTime];
+    },
+
+    async updateTeeTime(sessionToken, payload = {}) {
+      const userId = await sessionUserId(sessionToken);
+      if (!userId) throw new Error("Authentication required");
+
+      const snapshot = await snapshotForUser(userId);
+      const nextTeeTime = normalizeTeeTime(snapshot.teeTime, snapshot.user, payload);
+
+      await query(
+        `
+          update tee_times
+          set
+            day_label = $2,
+            tee_date = $3,
+            tee_time = $4,
+            home_course = $5,
+            posting_type = $6,
+            golfers_committed = $7,
+            open_slots = $8,
+            holes = $9,
+            note = $10,
+            updated_at = now()
+          where user_id = $1
+        `,
+        [
+          userId,
+          nextTeeTime.dayLabel,
+          nextTeeTime.teeDate,
+          nextTeeTime.teeTime,
+          nextTeeTime.homeCourse,
+          nextTeeTime.postingType,
+          nextTeeTime.golfersCommitted,
+          nextTeeTime.openSlots,
+          nextTeeTime.holes,
+          nextTeeTime.note
+        ]
+      );
+
+      return snapshotForUser(userId);
     },
 
     async getMessages(sessionToken, matchId) {

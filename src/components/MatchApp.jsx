@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
@@ -94,6 +94,77 @@ function SettingsPanel({ user, onChange }) {
             <span>±{user.handicapRange}</span>
           </div>
         </label>
+      </form>
+    </section>
+  );
+}
+
+function TeeTimePostingPanel({ teeTime, user, onSave }) {
+  const [draft, setDraft] = useState(teeTime);
+
+  useEffect(() => {
+    setDraft(teeTime);
+  }, [teeTime]);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setDraft((current) => ({
+      ...current,
+      [name]: name === "holes" ? Number(value) : value
+    }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (!draft.homeCourse.trim() || !draft.teeDate || !draft.teeTime) return;
+    onSave(draft);
+  }
+
+  return (
+    <section className="posting-panel">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Active posting</p>
+          <h3>Create a real tee time listing</h3>
+        </div>
+        <div className="panel-status">
+          {user.playMode === "single" ? "Single looking to join" : "Group posting live"}
+        </div>
+      </div>
+
+      <form className="profile-form" onSubmit={handleSubmit}>
+        <label>
+          Course
+          <input name="homeCourse" type="text" value={draft.homeCourse} onChange={handleChange} />
+        </label>
+        <label>
+          Tee date
+          <input name="teeDate" type="date" value={draft.teeDate} onChange={handleChange} />
+        </label>
+        <label>
+          Tee time
+          <input name="teeTime" type="time" value={draft.teeTime} onChange={handleChange} />
+        </label>
+        <label>
+          Holes
+          <select name="holes" value={draft.holes} onChange={handleChange}>
+            <option value="9">9 holes</option>
+            <option value="18">18 holes</option>
+          </select>
+        </label>
+        <label className="profile-span-2">
+          Posting note
+          <textarea
+            name="note"
+            rows="3"
+            value={draft.note ?? ""}
+            placeholder="Add the vibe, arrival detail, or what kind of golfer you want to join the round."
+            onChange={handleChange}
+          />
+        </label>
+        <button className="primary-button profile-span-2" type="submit">
+          Save tee time posting
+        </button>
       </form>
     </section>
   );
@@ -288,6 +359,7 @@ export default function MatchApp({
   onOpenMatch,
   onSendMessage,
   onSubmitRating,
+  onTeeTimeUpdate,
   onLogout,
   onSettingsChange,
   onFilterChange,
@@ -314,16 +386,16 @@ export default function MatchApp({
 
         <div className="hero-stats">
           <article>
-            <strong>{teeTime.openSlots}</strong>
-            <span>Open slot live</span>
+            <strong>{teeTime.postingType === "single" ? "1" : teeTime.openSlots}</strong>
+            <span>{teeTime.postingType === "single" ? "Solo posting" : "Open slots live"}</span>
           </article>
           <article>
-            <strong>{user.distance} mi</strong>
-            <span>Search radius</span>
+            <strong>{teeTime.teeTime}</strong>
+            <span>Tee time posted</span>
           </article>
           <article>
-            <strong>±{user.handicapRange}</strong>
-            <span>Handicap band</span>
+            <strong>{teeTime.holes}</strong>
+            <span>Holes posted</span>
           </article>
         </div>
 
@@ -365,18 +437,24 @@ export default function MatchApp({
             </div>
           </header>
 
+          <TeeTimePostingPanel teeTime={teeTime} user={user} onSave={onTeeTimeUpdate} />
+
           <section className="summary-strip">
             <article className="summary-card primary">
               <p>{teeTime.postingType === "single" ? "Solo posting" : "Current booking"}</p>
               <strong>{teeTime.dayLabel}</strong>
               {teeTime.postingType === "single" ? (
-                <span>{teeTime.homeCourse} · You are looking to join an existing group for this round</span>
+                <span>
+                  {teeTime.homeCourse} · {teeTime.holes} holes · You are looking to join an existing
+                  group for this round
+                </span>
               ) : (
                 <span>
-                  {teeTime.homeCourse} · {teeTime.golfersCommitted} golfers · {teeTime.openSlots} open
-                  spot{teeTime.openSlots > 1 ? "s" : ""}
+                  {teeTime.homeCourse} · {teeTime.holes} holes · {teeTime.golfersCommitted} golfers ·{" "}
+                  {teeTime.openSlots} open spot{teeTime.openSlots > 1 ? "s" : ""}
                 </span>
               )}
+              {teeTime.note ? <em className="summary-note">"{teeTime.note}"</em> : null}
               <div className="summary-accent-row">
                 <span className="summary-chip solid">
                   {teeTime.postingType === "single" ? "Looking for a group" : "Ready to match"}

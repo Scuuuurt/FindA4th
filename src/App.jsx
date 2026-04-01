@@ -139,6 +139,10 @@ export default function App() {
     api.refreshDeck().then(commitSnapshot);
   }
 
+  function handleTeeTimeUpdate(nextTeeTime) {
+    api.updateTeeTime(nextTeeTime).then(commitSnapshot);
+  }
+
   function handleSwipe(direction) {
     api.swipe(direction).then(commitSnapshot);
   }
@@ -216,6 +220,7 @@ export default function App() {
       onOpenMatch={handleOpenMatch}
       onSendMessage={handleSendMessage}
       onSubmitRating={handleSubmitRating}
+      onTeeTimeUpdate={handleTeeTimeUpdate}
       onSettingsChange={handleUserChange}
       onFilterChange={handleFilterChange}
       onRefresh={handleRefresh}

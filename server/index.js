@@ -13,6 +13,7 @@ import {
   storageMode,
   submitRating,
   swipeProfile,
+  updateTeeTime,
   updateSettings
 } from "./store.js";
 
@@ -101,6 +102,14 @@ app.post("/api/discovery/swipe", async (request, response, next) => {
 app.get("/api/tee-times", async (_request, response, next) => {
   try {
     response.json(await getTeeTimes(sessionToken(_request)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/tee-times/current", async (request, response, next) => {
+  try {
+    response.json(await updateTeeTime(sessionToken(request), request.body));
   } catch (error) {
     next(error);
   }
