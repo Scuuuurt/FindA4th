@@ -32,6 +32,10 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
       </div>
 
       <div className="card-body">
+        <div className="card-kicker-row">
+          <span className="card-kicker">Best match right now</span>
+          {profile.verifiedCourse ? <span className="card-kicker muted">Verified course</span> : null}
+        </div>
         <div className="card-title-row">
           <div>
             <h3 className="profile-name">
@@ -71,6 +75,21 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
           {profile.availableDays?.length ? (
             <span className="tag">{profile.availableDays.join(" / ")}</span>
           ) : null}
+        </div>
+
+        <div className="card-footer">
+          <div>
+            <strong>{profile.reliabilityRating?.toFixed(1) ?? "4.8"}</strong>
+            <span>Reliability</span>
+          </div>
+          <div>
+            <strong>{profile.completedRounds}</strong>
+            <span>Rounds played</span>
+          </div>
+          <div>
+            <strong>{profile.availabilityWindow}</strong>
+            <span>Typical window</span>
+          </div>
         </div>
       </div>
     </article>

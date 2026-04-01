@@ -498,6 +498,39 @@ function MatchWorkspace({
   );
 }
 
+function DemoSpotlight({ user, teeTime, deck, matches }) {
+  return (
+    <section className="demo-spotlight">
+      <div className="spotlight-header">
+        <div>
+          <p className="topbar-label">Demo story</p>
+          <h3>What someone should notice in 30 seconds</h3>
+        </div>
+        <div className="spotlight-pill">Pitch-ready flow</div>
+      </div>
+
+      <div className="spotlight-grid">
+        <article>
+          <strong>{teeTime.homeCourse}</strong>
+          <span>Verified course for this round</span>
+        </article>
+        <article>
+          <strong>{deck.length}</strong>
+          <span>Filtered candidates right now</span>
+        </article>
+        <article>
+          <strong>{matches.length}</strong>
+          <span>Matches created in the demo</span>
+        </article>
+        <article>
+          <strong>{user.availabilityWindow}</strong>
+          <span>Preferred play window</span>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 export default function MatchApp({
   user,
   filter,
@@ -535,6 +568,13 @@ export default function MatchApp({
             FindA4th helps singles, duos, and partial groups find each other before the round.
             Swipe through compatible players and complete your tee sheet with confidence.
           </p>
+        </div>
+
+        <div className="hero-marquee">
+          <span>Verified courses</span>
+          <span>Preference-aware matching</span>
+          <span>Round coordination chat</span>
+          <span>Post-round trust and ratings</span>
         </div>
 
         <div className="hero-stats">
@@ -589,6 +629,8 @@ export default function MatchApp({
               </button>
             </div>
           </header>
+
+          <DemoSpotlight user={user} teeTime={teeTime} deck={deck} matches={matches} />
 
           <TeeTimePostingPanel teeTime={teeTime} user={user} onSave={onTeeTimeUpdate} />
 
