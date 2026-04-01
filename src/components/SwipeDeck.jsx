@@ -52,6 +52,7 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
           <div className="detail-pill">Home: {profile.homeCourse}</div>
           <div className="detail-pill">Vibe: {profile.vibe}</div>
           <div className="detail-pill">Pace: {profile.pace}</div>
+          <div className="detail-pill">Gender: {profile.gender ?? "Prefer not to say"}</div>
           <div className="detail-pill">Move: {labelize(profile.mobilityPreference)}</div>
           <div className="detail-pill">Music: {labelize(profile.musicPreference)}</div>
           <div className="detail-pill">Window: {profile.availabilityWindow}</div>

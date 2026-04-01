@@ -8,6 +8,8 @@ create table if not exists app_users (
   distance integer not null default 25,
   handicap_range integer not null default 8,
   preferred_vibe text not null default 'any',
+  gender text not null default 'Prefer not to say',
+  gender_preference text not null default 'Anyone',
   mobility_preference text not null default 'either',
   music_preference text not null default 'either',
   available_days text not null default 'Sat,Sun',

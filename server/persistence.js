@@ -24,6 +24,12 @@ function filteredDeck(sourceProfiles, user, filter, swipedIds) {
     const vibeMatch =
       (user.preferredVibe ?? "any") === "any" ||
       (profile.preferredVibe ?? profile.vibe.toLowerCase()) === user.preferredVibe;
+    const genderMatch =
+      (user.genderPreference ?? "Anyone") === "Anyone" ||
+      ((user.genderPreference ?? "Anyone") === "Women" && profile.gender === "Woman") ||
+      ((user.genderPreference ?? "Anyone") === "Men" && profile.gender === "Man") ||
+      ((user.genderPreference ?? "Anyone") === "Non-binary golfers" &&
+        profile.gender === "Non-binary");
     const mobilityMatch =
       (user.mobilityPreference ?? "either") === "either" ||
       profile.mobilityPreference === "either" ||
@@ -42,6 +48,7 @@ function filteredDeck(sourceProfiles, user, filter, swipedIds) {
       !distanceMatch ||
       !handicapMatch ||
       !vibeMatch ||
+      !genderMatch ||
       !mobilityMatch ||
       !musicMatch ||
       !dayOverlap ||
@@ -109,6 +116,8 @@ function userFromRow(row) {
     distance: Number(row.distance),
     handicapRange: Number(row.handicap_range),
     preferredVibe: row.preferred_vibe ?? "any",
+    gender: row.gender ?? "Prefer not to say",
+    genderPreference: row.gender_preference ?? "Anyone",
     mobilityPreference: row.mobility_preference ?? "either",
     musicPreference: row.music_preference ?? "either",
     availableDays: parseDays(row.available_days ?? "Sat,Sun"),
@@ -320,6 +329,8 @@ function createMemoryRepository() {
         distance: account.distance,
         handicapRange: account.handicapRange,
         preferredVibe: account.preferredVibe,
+        gender: account.gender,
+        genderPreference: account.genderPreference,
         mobilityPreference: account.mobilityPreference,
         musicPreference: account.musicPreference,
         availableDays: account.availableDays,
@@ -371,6 +382,8 @@ function createMemoryRepository() {
         distance: defaultUser.distance,
         handicapRange: defaultUser.handicapRange,
         preferredVibe: defaultUser.preferredVibe,
+        gender: defaultUser.gender,
+        genderPreference: defaultUser.genderPreference,
         mobilityPreference: defaultUser.mobilityPreference,
         musicPreference: defaultUser.musicPreference,
         availableDays: clone(defaultUser.availableDays),
@@ -417,6 +430,8 @@ function createMemoryRepository() {
         distance: Number(payload.distance),
         handicapRange: Number(payload.handicapRange),
         preferredVibe: payload.preferredVibe ?? account.preferredVibe,
+        gender: payload.gender ?? account.gender,
+        genderPreference: payload.genderPreference ?? account.genderPreference,
         mobilityPreference: payload.mobilityPreference ?? account.mobilityPreference,
         musicPreference: payload.musicPreference ?? account.musicPreference,
         availableDays: parseDays(payload.availableDays ?? account.availableDays),
@@ -452,6 +467,8 @@ function createMemoryRepository() {
         distance: Number(payload.distance ?? account.distance),
         handicapRange: Number(payload.handicapRange ?? account.handicapRange),
         preferredVibe: payload.preferredVibe ?? account.preferredVibe,
+        gender: payload.gender ?? account.gender,
+        genderPreference: payload.genderPreference ?? account.genderPreference,
         mobilityPreference: payload.mobilityPreference ?? account.mobilityPreference,
         musicPreference: payload.musicPreference ?? account.musicPreference,
         availableDays: parseDays(payload.availableDays ?? account.availableDays),
@@ -696,7 +713,7 @@ function createPostgresRepository() {
       query(
         `
           select id, email, name, home_course, handicap, distance, handicap_range, current_filter, onboarded
-          , preferred_vibe, mobility_preference, music_preference, available_days, availability_window
+          , preferred_vibe, gender, gender_preference, mobility_preference, music_preference, available_days, availability_window
           , play_mode, group_size
           from app_users
           where id = $1
@@ -757,6 +774,8 @@ function createPostgresRepository() {
         distance: user.distance,
         handicapRange: user.handicapRange,
         preferredVibe: user.preferredVibe,
+        gender: user.gender,
+        genderPreference: user.genderPreference,
         mobilityPreference: user.mobilityPreference,
         musicPreference: user.musicPreference,
         availableDays: user.availableDays,
@@ -801,10 +820,10 @@ function createPostgresRepository() {
         `
           insert into app_users (
             id, email, password_hash, name, home_course, handicap, distance, handicap_range,
-            preferred_vibe, mobility_preference, music_preference, available_days, availability_window,
-            play_mode, group_size, current_filter, onboarded
+            preferred_vibe, gender, gender_preference, mobility_preference, music_preference,
+            available_days, availability_window, play_mode, group_size, current_filter, onboarded
           )
-          values ($1, $2, $3, '', '', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'all', false)
+          values ($1, $2, $3, '', '', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'all', false)
         `,
         [
           userId,
@@ -814,6 +833,8 @@ function createPostgresRepository() {
           defaultUser.distance,
           defaultUser.handicapRange,
           defaultUser.preferredVibe,
+          defaultUser.gender,
+          defaultUser.genderPreference,
           defaultUser.mobilityPreference,
           defaultUser.musicPreference,
           serializeDays(defaultUser.availableDays),
@@ -864,12 +885,14 @@ function createPostgresRepository() {
             distance = $5,
             handicap_range = $6,
             preferred_vibe = $7,
-            mobility_preference = $8,
-            music_preference = $9,
-            available_days = $10,
-            availability_window = $11,
-            play_mode = $12,
-            group_size = $13,
+            gender = $8,
+            gender_preference = $9,
+            mobility_preference = $10,
+            music_preference = $11,
+            available_days = $12,
+            availability_window = $13,
+            play_mode = $14,
+            group_size = $15,
             onboarded = true,
             updated_at = now()
           where id = $1
@@ -882,6 +905,8 @@ function createPostgresRepository() {
           Number(payload.distance),
           Number(payload.handicapRange),
           payload.preferredVibe ?? defaultUser.preferredVibe,
+          payload.gender ?? defaultUser.gender,
+          payload.genderPreference ?? defaultUser.genderPreference,
           payload.mobilityPreference ?? defaultUser.mobilityPreference,
           payload.musicPreference ?? defaultUser.musicPreference,
           serializeDays(payload.availableDays ?? defaultUser.availableDays),
@@ -932,12 +957,14 @@ function createPostgresRepository() {
             distance = $5,
             handicap_range = $6,
             preferred_vibe = $7,
-            mobility_preference = $8,
-            music_preference = $9,
-            available_days = $10,
-            availability_window = $11,
-            play_mode = $12,
-            group_size = $13,
+            gender = $8,
+            gender_preference = $9,
+            mobility_preference = $10,
+            music_preference = $11,
+            available_days = $12,
+            availability_window = $13,
+            play_mode = $14,
+            group_size = $15,
             updated_at = now()
           where id = $1
         `,
@@ -949,6 +976,8 @@ function createPostgresRepository() {
           Number(nextUser.distance),
           Number(nextUser.handicapRange),
           nextUser.preferredVibe ?? defaultUser.preferredVibe,
+          nextUser.gender ?? defaultUser.gender,
+          nextUser.genderPreference ?? defaultUser.genderPreference,
           nextUser.mobilityPreference ?? defaultUser.mobilityPreference,
           nextUser.musicPreference ?? defaultUser.musicPreference,
           serializeDays(nextUser.availableDays ?? defaultUser.availableDays),

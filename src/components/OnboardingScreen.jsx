@@ -1,4 +1,10 @@
-import { availabilityDays, availabilityWindows, verifiedCourses } from "../data/profiles";
+import {
+  availabilityDays,
+  availabilityWindows,
+  genderOptions,
+  genderPreferenceOptions,
+  verifiedCourses
+} from "../data/profiles";
 
 function DayPicker({ value, onChange }) {
   function toggleDay(day) {
@@ -200,6 +206,28 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 <option value="any">Any vibe</option>
                 <option value="social">Mostly social</option>
                 <option value="competitive">Mostly competitive</option>
+              </select>
+            </label>
+
+            <label>
+              Gender
+              <select name="gender" value={draft.gender} onChange={onChange}>
+                {genderOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Looking to play with
+              <select name="genderPreference" value={draft.genderPreference} onChange={onChange}>
+                {genderPreferenceOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </label>
 

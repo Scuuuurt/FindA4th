@@ -25,6 +25,8 @@ function normalizeUser(nextUser) {
       ? nextUser.availableDays
       : defaultUser.availableDays,
     preferredVibe: nextUser.preferredVibe ?? defaultUser.preferredVibe,
+    gender: nextUser.gender ?? defaultUser.gender,
+    genderPreference: nextUser.genderPreference ?? defaultUser.genderPreference,
     mobilityPreference: nextUser.mobilityPreference ?? defaultUser.mobilityPreference,
     musicPreference: nextUser.musicPreference ?? defaultUser.musicPreference,
     availabilityWindow: nextUser.availabilityWindow ?? defaultUser.availabilityWindow,

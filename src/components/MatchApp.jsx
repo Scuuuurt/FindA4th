@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   availabilityDays,
   availabilityWindows,
+  genderOptions,
+  genderPreferenceOptions,
   verifiedCourses
 } from "../data/profiles";
 import SwipeDeck from "./SwipeDeck";
@@ -108,6 +110,28 @@ function SettingsPanel({ user, onChange }) {
             <option value="any">Any vibe</option>
             <option value="social">Mostly social</option>
             <option value="competitive">Mostly competitive</option>
+          </select>
+        </label>
+
+        <label>
+          Gender
+          <select name="gender" value={user.gender} onChange={onChange}>
+            {genderOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Looking to play with
+          <select name="genderPreference" value={user.genderPreference} onChange={onChange}>
+            {genderPreferenceOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -605,6 +629,7 @@ export default function MatchApp({
                   {user.playMode === "single" ? "Mode: single" : `Mode: group of ${user.groupSize}`}
                 </span>
                 <span className="summary-chip">Music: {user.musicPreference.replace("_", " ")}</span>
+                <span className="summary-chip">Play with: {user.genderPreference}</span>
               </div>
             </article>
           </section>

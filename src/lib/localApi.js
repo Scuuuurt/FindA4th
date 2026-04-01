@@ -24,6 +24,12 @@ function filteredDeck(userState) {
     const vibeMatch =
       userState.user.preferredVibe === "any" ||
       (profile.preferredVibe ?? profile.vibe.toLowerCase()) === userState.user.preferredVibe;
+    const genderMatch =
+      (userState.user.genderPreference ?? "Anyone") === "Anyone" ||
+      ((userState.user.genderPreference ?? "Anyone") === "Women" && profile.gender === "Woman") ||
+      ((userState.user.genderPreference ?? "Anyone") === "Men" && profile.gender === "Man") ||
+      ((userState.user.genderPreference ?? "Anyone") === "Non-binary golfers" &&
+        profile.gender === "Non-binary");
     const mobilityMatch =
       userState.user.mobilityPreference === "either" ||
       profile.mobilityPreference === "either" ||
@@ -42,6 +48,7 @@ function filteredDeck(userState) {
       !distanceMatch ||
       !handicapMatch ||
       !vibeMatch ||
+      !genderMatch ||
       !mobilityMatch ||
       !musicMatch ||
       !dayOverlap ||

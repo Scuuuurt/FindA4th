@@ -9,6 +9,8 @@ export const verifiedCourses = [
 
 export const availabilityDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export const availabilityWindows = ["Any time", "Early morning", "Mid-morning", "Afternoon", "Twilight"];
+export const genderOptions = ["Prefer not to say", "Woman", "Man", "Non-binary"];
+export const genderPreferenceOptions = ["Anyone", "Women", "Men", "Non-binary golfers"];
 
 export const profiles = [
   {
@@ -33,6 +35,7 @@ export const profiles = [
     mobilityPreference: "walking",
     musicPreference: "music_okay",
     preferredVibe: "social",
+    gender: "Woman",
     availableDays: ["Sat", "Sun"],
     availabilityWindow: "Early morning",
     verifiedCourse: true,
@@ -61,6 +64,7 @@ export const profiles = [
     mobilityPreference: "cart",
     musicPreference: "music_okay",
     preferredVibe: "social",
+    gender: "Man",
     availableDays: ["Fri", "Sat"],
     availabilityWindow: "Mid-morning",
     verifiedCourse: true,
@@ -89,6 +93,7 @@ export const profiles = [
     mobilityPreference: "walking",
     musicPreference: "no_music",
     preferredVibe: "competitive",
+    gender: "Man",
     availableDays: ["Thu", "Sat", "Sun"],
     availabilityWindow: "Early morning",
     verifiedCourse: true,
@@ -117,6 +122,7 @@ export const profiles = [
     mobilityPreference: "walking",
     musicPreference: "no_music",
     preferredVibe: "competitive",
+    gender: "Man",
     availableDays: ["Sat", "Sun"],
     availabilityWindow: "Early morning",
     verifiedCourse: true,
@@ -145,6 +151,7 @@ export const profiles = [
     mobilityPreference: "either",
     musicPreference: "music_okay",
     preferredVibe: "social",
+    gender: "Man",
     availableDays: ["Wed", "Fri", "Sat"],
     availabilityWindow: "Twilight",
     verifiedCourse: true,
@@ -162,6 +169,8 @@ export const defaultUser = {
   playMode: "group_owner",
   groupSize: 3,
   preferredVibe: "any",
+  gender: "Prefer not to say",
+  genderPreference: "Anyone",
   mobilityPreference: "either",
   musicPreference: "either",
   availableDays: ["Sat", "Sun"],
