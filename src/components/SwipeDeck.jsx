@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+function labelize(value) {
+  return value.replace("_", " ");
+}
+
 function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
   const isTop = offset === 0;
   const style = isTop
@@ -48,6 +52,12 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
           <div className="detail-pill">Home: {profile.homeCourse}</div>
           <div className="detail-pill">Vibe: {profile.vibe}</div>
           <div className="detail-pill">Pace: {profile.pace}</div>
+          <div className="detail-pill">Move: {labelize(profile.mobilityPreference)}</div>
+          <div className="detail-pill">Music: {labelize(profile.musicPreference)}</div>
+          <div className="detail-pill">Window: {profile.availabilityWindow}</div>
+          <div className="detail-pill">
+            Rating: {profile.reliabilityRating?.toFixed(1) ?? "4.8"} ({profile.completedRounds} rounds)
+          </div>
         </div>
 
         <div className="tag-row">
@@ -56,6 +66,10 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown }) {
               {tag}
             </span>
           ))}
+          {profile.verifiedCourse ? <span className="tag verified">Verified course</span> : null}
+          {profile.availableDays?.length ? (
+            <span className="tag">{profile.availableDays.join(" / ")}</span>
+          ) : null}
         </div>
       </div>
     </article>

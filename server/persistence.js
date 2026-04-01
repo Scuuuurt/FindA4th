@@ -21,13 +21,53 @@ function filteredDeck(sourceProfiles, user, filter, swipedIds) {
     const distanceMatch = profile.distanceMiles <= user.distance;
     const handicapMatch =
       Math.abs(profile.handicapValue - Number(user.handicap)) <= Number(user.handicapRange);
+    const vibeMatch =
+      (user.preferredVibe ?? "any") === "any" ||
+      (profile.preferredVibe ?? profile.vibe.toLowerCase()) === user.preferredVibe;
+    const mobilityMatch =
+      (user.mobilityPreference ?? "either") === "either" ||
+      profile.mobilityPreference === "either" ||
+      profile.mobilityPreference === user.mobilityPreference;
+    const musicMatch =
+      (user.musicPreference ?? "either") === "either" ||
+      profile.musicPreference === user.musicPreference;
+    const dayOverlap =
+      !(user.availableDays ?? []).length ||
+      profile.availableDays?.some((day) => user.availableDays.includes(day));
+    const availabilityMatch =
+      (user.availabilityWindow ?? "Any time") === "Any time" ||
+      profile.availabilityWindow === user.availabilityWindow;
 
-    if (!distanceMatch || !handicapMatch || swipedIds.has(profile.id)) return false;
+    if (
+      !distanceMatch ||
+      !handicapMatch ||
+      !vibeMatch ||
+      !mobilityMatch ||
+      !musicMatch ||
+      !dayOverlap ||
+      !availabilityMatch ||
+      swipedIds.has(profile.id)
+    ) {
+      return false;
+    }
     if (filter === "all") return true;
     if (filter === "single") return profile.type === "Single";
     if (filter === "group") return profile.type === "Group";
     return profile.vibe.toLowerCase() === filter;
   });
+}
+
+function parseDays(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serializeDays(value) {
+  return parseDays(value).join(",");
 }
 
 function assertEmailAndPassword(payload = {}) {
@@ -68,6 +108,11 @@ function userFromRow(row) {
     handicap: Number(row.handicap),
     distance: Number(row.distance),
     handicapRange: Number(row.handicap_range),
+    preferredVibe: row.preferred_vibe ?? "any",
+    mobilityPreference: row.mobility_preference ?? "either",
+    musicPreference: row.music_preference ?? "either",
+    availableDays: parseDays(row.available_days ?? "Sat,Sun"),
+    availabilityWindow: row.availability_window ?? "Any time",
     playMode: row.play_mode ?? "group_owner",
     groupSize: Number(row.group_size ?? 3)
   };
@@ -163,11 +208,12 @@ function ratingsSummary(entries = []) {
   };
 }
 
-function buildMatch(profile, matchId, ratingEntries = []) {
+function buildMatch(profile, matchId, ratingEntries = [], trust = {}) {
   return {
     id: matchId,
     profile,
-    ratings: ratingsSummary(ratingEntries)
+    ratings: ratingsSummary(ratingEntries),
+    trust
   };
 }
 
@@ -216,6 +262,8 @@ function createMemoryRepository() {
     teeTimes: new Map(),
     swipes: new Map(),
     matches: new Map(),
+    blockedProfiles: new Map(),
+    trustEvents: new Map(),
     messageThreads: new Map(),
     ratings: new Map()
   };
@@ -226,6 +274,8 @@ function createMemoryRepository() {
     }
     if (!state.swipes.has(userId)) state.swipes.set(userId, new Map());
     if (!state.matches.has(userId)) state.matches.set(userId, []);
+    if (!state.blockedProfiles.has(userId)) state.blockedProfiles.set(userId, new Set());
+    if (!state.trustEvents.has(userId)) state.trustEvents.set(userId, []);
   }
 
   function findUserByEmail(email) {
@@ -243,13 +293,19 @@ function createMemoryRepository() {
     ensureCollections(userId);
     const swipeMap = state.swipes.get(userId);
     const swipedIds = new Set([...swipeMap.keys()].map(Number));
+    const blockedIds = state.blockedProfiles.get(userId);
     const matches = state.matches
       .get(userId)
       .map((profileId) => {
         const profile = profileById(profileId);
-        if (!profile) return null;
+        if (!profile || blockedIds.has(profileId)) return null;
         const matchId = matchIdFor(userId, profileId);
-        return buildMatch(profile, matchId, state.ratings.get(matchId) ?? []);
+        const trustEvents = state.trustEvents.get(userId).filter((event) => event.matchId === matchId);
+        return buildMatch(profile, matchId, state.ratings.get(matchId) ?? [], {
+          blocked: blockedIds.has(profileId),
+          reported: trustEvents.some((event) => event.action === "report"),
+          noShow: trustEvents.some((event) => event.action === "no_show")
+        });
       })
       .filter(Boolean);
 
@@ -263,11 +319,18 @@ function createMemoryRepository() {
         handicap: account.handicap,
         distance: account.distance,
         handicapRange: account.handicapRange,
+        preferredVibe: account.preferredVibe,
+        mobilityPreference: account.mobilityPreference,
+        musicPreference: account.musicPreference,
+        availableDays: account.availableDays,
+        availabilityWindow: account.availabilityWindow,
         playMode: account.playMode,
         groupSize: account.groupSize
       },
       filter: account.currentFilter,
-      deck: filteredDeck(profiles, account, account.currentFilter, swipedIds),
+      deck: filteredDeck(profiles, account, account.currentFilter, swipedIds).filter(
+        (profile) => !blockedIds.has(profile.id)
+      ),
       matches,
       previousPartners: buildPreviousPartners(matches),
       teeTime: clone(state.teeTimes.get(userId))
@@ -307,6 +370,11 @@ function createMemoryRepository() {
         handicap: defaultUser.handicap,
         distance: defaultUser.distance,
         handicapRange: defaultUser.handicapRange,
+        preferredVibe: defaultUser.preferredVibe,
+        mobilityPreference: defaultUser.mobilityPreference,
+        musicPreference: defaultUser.musicPreference,
+        availableDays: clone(defaultUser.availableDays),
+        availabilityWindow: defaultUser.availabilityWindow,
         playMode: defaultUser.playMode,
         groupSize: defaultUser.groupSize,
         currentFilter: "all",
@@ -348,6 +416,11 @@ function createMemoryRepository() {
         handicap: Number(payload.handicap),
         distance: Number(payload.distance),
         handicapRange: Number(payload.handicapRange),
+        preferredVibe: payload.preferredVibe ?? account.preferredVibe,
+        mobilityPreference: payload.mobilityPreference ?? account.mobilityPreference,
+        musicPreference: payload.musicPreference ?? account.musicPreference,
+        availableDays: parseDays(payload.availableDays ?? account.availableDays),
+        availabilityWindow: payload.availabilityWindow ?? account.availabilityWindow,
         playMode: payload.playMode ?? account.playMode,
         groupSize:
           payload.playMode === "single"
@@ -378,6 +451,11 @@ function createMemoryRepository() {
         handicap: Number(payload.handicap ?? account.handicap),
         distance: Number(payload.distance ?? account.distance),
         handicapRange: Number(payload.handicapRange ?? account.handicapRange),
+        preferredVibe: payload.preferredVibe ?? account.preferredVibe,
+        mobilityPreference: payload.mobilityPreference ?? account.mobilityPreference,
+        musicPreference: payload.musicPreference ?? account.musicPreference,
+        availableDays: parseDays(payload.availableDays ?? account.availableDays),
+        availabilityWindow: payload.availabilityWindow ?? account.availabilityWindow,
         playMode: payload.playMode ?? account.playMode,
         groupSize:
           (payload.playMode ?? account.playMode) === "single"
@@ -496,6 +574,33 @@ function createMemoryRepository() {
 
       const snapshot = snapshotForUser(userId);
       return snapshot.matches.find((match) => match.id === matchId) ?? null;
+    },
+
+    async runTrustAction(sessionToken, matchId, payload = {}) {
+      const userId = sessionUserId(sessionToken);
+      if (!userId) throw new Error("Authentication required");
+      ensureMatchAccess(userId, matchId);
+
+      const action = payload.action;
+      const profileId = Number(matchId.split("-").at(-1));
+      if (action === "block") {
+        state.blockedProfiles.get(userId).add(profileId);
+        state.matches.set(
+          userId,
+          state.matches.get(userId).filter((item) => item !== profileId)
+        );
+        state.messageThreads.delete(matchId);
+        return snapshotForUser(userId);
+      }
+
+      state.trustEvents.get(userId).push({
+        id: createId("trust"),
+        matchId,
+        profileId,
+        action,
+        createdAt: new Date().toISOString()
+      });
+      return snapshotForUser(userId);
     }
   };
 }
@@ -554,11 +659,44 @@ function createPostgresRepository() {
     return grouped;
   }
 
+  async function loadTrustSummary(userId, matchRows) {
+    const profileIds = matchRows.map((row) => Number(row.profile_id));
+    const blockedResult = profileIds.length
+      ? await query(
+          "select profile_id from blocked_profiles where user_id = $1 and profile_id = any($2::int[])",
+          [userId, profileIds]
+        )
+      : { rows: [] };
+    const blockedIds = new Set(blockedResult.rows.map((row) => Number(row.profile_id)));
+    const matchIds = matchRows.map((row) => row.id);
+    const trustResult = matchIds.length
+      ? await query(
+          `
+            select match_id, profile_id, action
+            from trust_events
+            where user_id = $1 and match_id = any($2::text[])
+          `,
+          [userId, matchIds]
+        )
+      : { rows: [] };
+
+    const grouped = new Map();
+    trustResult.rows.forEach((row) => {
+      const current = grouped.get(row.match_id) ?? { reported: false, noShow: false };
+      if (row.action === "report") current.reported = true;
+      if (row.action === "no_show") current.noShow = true;
+      grouped.set(row.match_id, current);
+    });
+
+    return { blockedIds, trustByMatchId: grouped };
+  }
+
   async function snapshotForUser(userId) {
     const [userResult, teeTimeResult, swipeResult, matchResult] = await Promise.all([
       query(
         `
           select id, email, name, home_course, handicap, distance, handicap_range, current_filter, onboarded
+          , preferred_vibe, mobility_preference, music_preference, available_days, availability_window
           , play_mode, group_size
           from app_users
           where id = $1
@@ -594,12 +732,17 @@ function createPostgresRepository() {
     const user = userFromRow(row);
     const swipedIds = new Set(swipeResult.rows.map((item) => Number(item.profile_id)));
     const ratingsMap = await loadRatingsByMatchIds(matchResult.rows.map((row) => row.id));
+    const { blockedIds, trustByMatchId } = await loadTrustSummary(userId, matchResult.rows);
 
     const matches = matchResult.rows
       .map((item) => {
         const profile = profileById(item.profile_id);
-        if (!profile) return null;
-        return buildMatch(profile, item.id, ratingsMap.get(item.id) ?? []);
+        if (!profile || blockedIds.has(Number(item.profile_id))) return null;
+        return buildMatch(profile, item.id, ratingsMap.get(item.id) ?? [], {
+          blocked: blockedIds.has(Number(item.profile_id)),
+          reported: trustByMatchId.get(item.id)?.reported ?? false,
+          noShow: trustByMatchId.get(item.id)?.noShow ?? false
+        });
       })
       .filter(Boolean);
 
@@ -613,11 +756,18 @@ function createPostgresRepository() {
         handicap: user.handicap,
         distance: user.distance,
         handicapRange: user.handicapRange,
+        preferredVibe: user.preferredVibe,
+        mobilityPreference: user.mobilityPreference,
+        musicPreference: user.musicPreference,
+        availableDays: user.availableDays,
+        availabilityWindow: user.availabilityWindow,
         playMode: user.playMode,
         groupSize: user.groupSize
       },
       filter: row.current_filter ?? "all",
-      deck: filteredDeck(profiles, user, row.current_filter ?? "all", swipedIds),
+      deck: filteredDeck(profiles, user, row.current_filter ?? "all", swipedIds).filter(
+        (profile) => !blockedIds.has(profile.id)
+      ),
       matches,
       previousPartners: buildPreviousPartners(matches),
       teeTime: teeTimeFromRow(teeTimeResult.rows[0], user.homeCourse)
@@ -651,9 +801,10 @@ function createPostgresRepository() {
         `
           insert into app_users (
             id, email, password_hash, name, home_course, handicap, distance, handicap_range,
+            preferred_vibe, mobility_preference, music_preference, available_days, availability_window,
             play_mode, group_size, current_filter, onboarded
           )
-          values ($1, $2, $3, '', '', $4, $5, $6, $7, $8, 'all', false)
+          values ($1, $2, $3, '', '', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'all', false)
         `,
         [
           userId,
@@ -662,6 +813,11 @@ function createPostgresRepository() {
           defaultUser.handicap,
           defaultUser.distance,
           defaultUser.handicapRange,
+          defaultUser.preferredVibe,
+          defaultUser.mobilityPreference,
+          defaultUser.musicPreference,
+          serializeDays(defaultUser.availableDays),
+          defaultUser.availabilityWindow,
           defaultUser.playMode,
           defaultUser.groupSize
         ]
@@ -707,8 +863,13 @@ function createPostgresRepository() {
             handicap = $4,
             distance = $5,
             handicap_range = $6,
-            play_mode = $7,
-            group_size = $8,
+            preferred_vibe = $7,
+            mobility_preference = $8,
+            music_preference = $9,
+            available_days = $10,
+            availability_window = $11,
+            play_mode = $12,
+            group_size = $13,
             onboarded = true,
             updated_at = now()
           where id = $1
@@ -720,6 +881,11 @@ function createPostgresRepository() {
           Number(payload.handicap),
           Number(payload.distance),
           Number(payload.handicapRange),
+          payload.preferredVibe ?? defaultUser.preferredVibe,
+          payload.mobilityPreference ?? defaultUser.mobilityPreference,
+          payload.musicPreference ?? defaultUser.musicPreference,
+          serializeDays(payload.availableDays ?? defaultUser.availableDays),
+          payload.availabilityWindow ?? defaultUser.availabilityWindow,
           payload.playMode ?? defaultUser.playMode,
           (payload.playMode ?? defaultUser.playMode) === "single"
             ? 1
@@ -765,8 +931,13 @@ function createPostgresRepository() {
             handicap = $4,
             distance = $5,
             handicap_range = $6,
-            play_mode = $7,
-            group_size = $8,
+            preferred_vibe = $7,
+            mobility_preference = $8,
+            music_preference = $9,
+            available_days = $10,
+            availability_window = $11,
+            play_mode = $12,
+            group_size = $13,
             updated_at = now()
           where id = $1
         `,
@@ -777,6 +948,11 @@ function createPostgresRepository() {
           Number(nextUser.handicap),
           Number(nextUser.distance),
           Number(nextUser.handicapRange),
+          nextUser.preferredVibe ?? defaultUser.preferredVibe,
+          nextUser.mobilityPreference ?? defaultUser.mobilityPreference,
+          nextUser.musicPreference ?? defaultUser.musicPreference,
+          serializeDays(nextUser.availableDays ?? defaultUser.availableDays),
+          nextUser.availabilityWindow ?? defaultUser.availabilityWindow,
           nextUser.playMode ?? defaultUser.playMode,
           nextUser.playMode === "single"
             ? 1
@@ -968,6 +1144,40 @@ function createPostgresRepository() {
 
       const snapshot = await snapshotForUser(userId);
       return snapshot.matches.find((match) => match.id === matchId) ?? null;
+    },
+
+    async runTrustAction(sessionToken, matchId, payload = {}) {
+      const userId = await sessionUserId(sessionToken);
+      if (!userId) throw new Error("Authentication required");
+      await ensureMatchAccess(userId, matchId);
+
+      const matchResult = await query("select profile_id from matches where id = $1 and user_id = $2", [
+        matchId,
+        userId
+      ]);
+      const profileId = Number(matchResult.rows[0]?.profile_id);
+      if (!profileId) throw new Error("Match not found");
+
+      if (payload.action === "block") {
+        await query(
+          `
+            insert into blocked_profiles (user_id, profile_id)
+            values ($1, $2)
+            on conflict (user_id, profile_id) do nothing
+          `,
+          [userId, profileId]
+        );
+        return snapshotForUser(userId);
+      }
+
+      await query(
+        `
+          insert into trust_events (id, user_id, profile_id, match_id, action)
+          values ($1, $2, $3, $4, $5)
+        `,
+        [createId("trust"), userId, profileId, matchId, payload.action]
+      );
+      return snapshotForUser(userId);
     }
   };
 }

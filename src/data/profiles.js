@@ -1,3 +1,15 @@
+export const verifiedCourses = [
+  "Pebble Ridge",
+  "Harbor Dunes",
+  "Pine Hollow",
+  "Willow Creek Club",
+  "Canyon Links",
+  "Oak Run Golf Club"
+];
+
+export const availabilityDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const availabilityWindows = ["Any time", "Early morning", "Mid-morning", "Afternoon", "Twilight"];
+
 export const profiles = [
   {
     id: 1,
@@ -17,7 +29,15 @@ export const profiles = [
     fit: "Best for social rounds",
     distanceMiles: 8,
     handicapValue: 11.4,
-    homeCourse: "Pebble Ridge"
+    homeCourse: "Pebble Ridge",
+    mobilityPreference: "walking",
+    musicPreference: "music_okay",
+    preferredVibe: "social",
+    availableDays: ["Sat", "Sun"],
+    availabilityWindow: "Early morning",
+    verifiedCourse: true,
+    completedRounds: 12,
+    reliabilityRating: 4.9
   },
   {
     id: 2,
@@ -37,7 +57,15 @@ export const profiles = [
     fit: "Close tee time overlap",
     distanceMiles: 14,
     handicapValue: 16,
-    homeCourse: "Harbor Dunes"
+    homeCourse: "Harbor Dunes",
+    mobilityPreference: "cart",
+    musicPreference: "music_okay",
+    preferredVibe: "social",
+    availableDays: ["Fri", "Sat"],
+    availabilityWindow: "Mid-morning",
+    verifiedCourse: true,
+    completedRounds: 18,
+    reliabilityRating: 4.8
   },
   {
     id: 3,
@@ -57,7 +85,15 @@ export const profiles = [
     fit: "High skill match",
     distanceMiles: 3,
     handicapValue: 6.8,
-    homeCourse: "Pebble Ridge"
+    homeCourse: "Pebble Ridge",
+    mobilityPreference: "walking",
+    musicPreference: "no_music",
+    preferredVibe: "competitive",
+    availableDays: ["Thu", "Sat", "Sun"],
+    availabilityWindow: "Early morning",
+    verifiedCourse: true,
+    completedRounds: 26,
+    reliabilityRating: 5
   },
   {
     id: 4,
@@ -77,7 +113,15 @@ export const profiles = [
     fit: "Two open spots",
     distanceMiles: 1,
     handicapValue: 9,
-    homeCourse: "Pebble Ridge"
+    homeCourse: "Pebble Ridge",
+    mobilityPreference: "walking",
+    musicPreference: "no_music",
+    preferredVibe: "competitive",
+    availableDays: ["Sat", "Sun"],
+    availabilityWindow: "Early morning",
+    verifiedCourse: true,
+    completedRounds: 9,
+    reliabilityRating: 4.7
   },
   {
     id: 5,
@@ -97,7 +141,15 @@ export const profiles = [
     fit: "Great vibe fit",
     distanceMiles: 22,
     handicapValue: 14.9,
-    homeCourse: "Pine Hollow"
+    homeCourse: "Pine Hollow",
+    mobilityPreference: "either",
+    musicPreference: "music_okay",
+    preferredVibe: "social",
+    availableDays: ["Wed", "Fri", "Sat"],
+    availabilityWindow: "Twilight",
+    verifiedCourse: true,
+    completedRounds: 7,
+    reliabilityRating: 4.6
   }
 ];
 
@@ -108,7 +160,12 @@ export const defaultUser = {
   distance: 25,
   handicapRange: 8,
   playMode: "group_owner",
-  groupSize: 3
+  groupSize: 3,
+  preferredVibe: "any",
+  mobilityPreference: "either",
+  musicPreference: "either",
+  availableDays: ["Sat", "Sun"],
+  availabilityWindow: "Any time"
 };
 
 export const defaultTeeTime = {

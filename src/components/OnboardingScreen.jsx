@@ -1,3 +1,27 @@
+import { availabilityDays, availabilityWindows, verifiedCourses } from "../data/profiles";
+
+function DayPicker({ value, onChange }) {
+  function toggleDay(day) {
+    const next = value.includes(day) ? value.filter((item) => item !== day) : [...value, day];
+    onChange({ target: { name: "availableDays", value: next } });
+  }
+
+  return (
+    <div className="day-chip-row">
+      {availabilityDays.map((day) => (
+        <button
+          key={day}
+          className={`day-chip ${value.includes(day) ? "active" : ""}`.trim()}
+          type="button"
+          onClick={() => toggleDay(day)}
+        >
+          {day}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function OnboardingScreen({ draft, onChange, onSubmit }) {
   const canContinue = draft.name.trim() && draft.homeCourse.trim();
 
@@ -12,41 +36,41 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
           <p className="eyebrow">TEE TIME MATCHING</p>
           <h1>Find the golfer who fits your round.</h1>
           <p className="hero-text">
-            FindA4th helps singles and partial groups match before the tee time.
-            Set your home course, handicap, and search radius to get better fits.
+            FindA4th helps singles and partial groups match before the tee time. Set your verified
+            course, preferences, and weekly availability to get better fits.
           </p>
         </div>
 
         <div className="hero-stats">
           <article>
-            <strong>Singles</strong>
-            <span>Fill one open seat fast</span>
-          </article>
-          <article>
-            <strong>Groups</strong>
-            <span>Merge partial foursomes</span>
-          </article>
-          <article>
             <strong>Filtered</strong>
             <span>By course, distance, handicap</span>
+          </article>
+          <article>
+            <strong>Trusted</strong>
+            <span>Safety tools and reliability signals</span>
+          </article>
+          <article>
+            <strong>Repeatable</strong>
+            <span>Availability-aware matches for future rounds</span>
           </article>
         </div>
 
         <div className="value-grid">
           <article>
             <span>01</span>
-            <h2>Singles and groups</h2>
-            <p>Match a solo golfer into an open spot or combine two partial groups.</p>
+            <h2>Verified course matching</h2>
+            <p>Keep matches anchored to real courses so demo rounds feel more believable.</p>
           </article>
           <article>
             <span>02</span>
-            <h2>Handicap aware</h2>
-            <p>Filter by skill band so competitive rounds and casual rounds both feel right.</p>
+            <h2>Preference aware</h2>
+            <p>Sort for walking versus cart, music preference, and social versus competitive fit.</p>
           </article>
           <article>
             <span>03</span>
-            <h2>Distance based</h2>
-            <p>Search the golfers and groups closest to where you actually play most.</p>
+            <h2>Trust controls</h2>
+            <p>Show reliability signals and make block, report, and no-show actions easy to find.</p>
           </article>
         </div>
       </section>
@@ -57,12 +81,13 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
           <p className="topbar-label">Get started</p>
           <h2 className="onboarding-title">Build your golfer profile</h2>
           <p className="onboarding-copy">
-            New users should finish this setup before swiping. You can update it later in settings.
+            This version is optimized for demos, so your profile should feel like a real golfer who
+            would actually join or host a round.
           </p>
           <div className="onboarding-feature-strip">
-            <span>Most played course</span>
-            <span>Handicap aware</span>
-            <span>1-50 mile radius</span>
+            <span>Verified home course</span>
+            <span>Preference filters</span>
+            <span>Availability calendar</span>
           </div>
 
           <form className="profile-form onboarding-form" onSubmit={onSubmit}>
@@ -85,6 +110,7 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 </button>
               </div>
             </label>
+
             <label>
               First name or group name
               <input
@@ -95,6 +121,7 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 onChange={onChange}
               />
             </label>
+
             {draft.playMode === "group_owner" ? (
               <label>
                 Golfers already in your group
@@ -109,16 +136,19 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 />
               </label>
             ) : null}
+
             <label>
               Most played course
-              <input
-                name="homeCourse"
-                type="text"
-                placeholder="Pebble Ridge"
-                value={draft.homeCourse}
-                onChange={onChange}
-              />
+              <select name="homeCourse" value={draft.homeCourse} onChange={onChange}>
+                <option value="">Select a verified course</option>
+                {verifiedCourses.map((course) => (
+                  <option key={course} value={course}>
+                    {course}
+                  </option>
+                ))}
+              </select>
             </label>
+
             <label>
               Your handicap
               <input
@@ -131,6 +161,7 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 onChange={onChange}
               />
             </label>
+
             <label>
               Looking within
               <div className="range-row">
@@ -146,6 +177,7 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 <span>{draft.distance} miles</span>
               </div>
             </label>
+
             <label>
               Handicap match range
               <div className="range-row">
@@ -161,6 +193,50 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 <span>±{draft.handicapRange}</span>
               </div>
             </label>
+
+            <label>
+              Preferred round style
+              <select name="preferredVibe" value={draft.preferredVibe} onChange={onChange}>
+                <option value="any">Any vibe</option>
+                <option value="social">Mostly social</option>
+                <option value="competitive">Mostly competitive</option>
+              </select>
+            </label>
+
+            <label>
+              Walking or cart
+              <select name="mobilityPreference" value={draft.mobilityPreference} onChange={onChange}>
+                <option value="either">Either is fine</option>
+                <option value="walking">Prefer walking</option>
+                <option value="cart">Prefer carts</option>
+              </select>
+            </label>
+
+            <label>
+              Music preference
+              <select name="musicPreference" value={draft.musicPreference} onChange={onChange}>
+                <option value="either">Either is fine</option>
+                <option value="no_music">Prefer no music</option>
+                <option value="music_okay">Music is okay</option>
+              </select>
+            </label>
+
+            <label>
+              Typical time window
+              <select name="availabilityWindow" value={draft.availabilityWindow} onChange={onChange}>
+                {availabilityWindows.map((window) => (
+                  <option key={window} value={window}>
+                    {window}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Days you usually play
+              <DayPicker value={draft.availableDays} onChange={onChange} />
+            </label>
+
             <button className="primary-button" type="submit" disabled={!canContinue}>
               Start matching
             </button>

@@ -15,13 +15,42 @@ const state = {
 
 function filteredDeck(userState) {
   const swipedIds = new Set(userState.swipes.keys());
+  const blockedIds = userState.blockedProfiles ?? new Set();
 
   return profiles.filter((profile) => {
     const distanceMatch = profile.distanceMiles <= userState.user.distance;
     const handicapMatch =
       Math.abs(profile.handicapValue - userState.user.handicap) <= userState.user.handicapRange;
+    const vibeMatch =
+      userState.user.preferredVibe === "any" ||
+      (profile.preferredVibe ?? profile.vibe.toLowerCase()) === userState.user.preferredVibe;
+    const mobilityMatch =
+      userState.user.mobilityPreference === "either" ||
+      profile.mobilityPreference === "either" ||
+      profile.mobilityPreference === userState.user.mobilityPreference;
+    const musicMatch =
+      userState.user.musicPreference === "either" ||
+      profile.musicPreference === userState.user.musicPreference;
+    const dayOverlap =
+      !userState.user.availableDays?.length ||
+      profile.availableDays?.some((day) => userState.user.availableDays.includes(day));
+    const availabilityMatch =
+      userState.user.availabilityWindow === "Any time" ||
+      profile.availabilityWindow === userState.user.availabilityWindow;
 
-    if (!distanceMatch || !handicapMatch || swipedIds.has(profile.id)) return false;
+    if (
+      !distanceMatch ||
+      !handicapMatch ||
+      !vibeMatch ||
+      !mobilityMatch ||
+      !musicMatch ||
+      !dayOverlap ||
+      !availabilityMatch ||
+      swipedIds.has(profile.id) ||
+      blockedIds.has(profile.id)
+    ) {
+      return false;
+    }
     if (userState.filter === "all") return true;
     if (userState.filter === "single") return profile.type === "Single";
     if (userState.filter === "group") return profile.type === "Group";
@@ -96,6 +125,18 @@ function emptySnapshot() {
   };
 }
 
+function trustSummary(userState, profileId, matchId) {
+  const events = (userState.trustEvents ?? []).filter(
+    (event) => event.profileId === profileId || (matchId && event.matchId === matchId)
+  );
+
+  return {
+    blocked: (userState.blockedProfiles ?? new Set()).has(profileId),
+    reported: events.some((event) => event.action === "report"),
+    noShow: events.some((event) => event.action === "no_show")
+  };
+}
+
 function buildPreviousPartners(userState) {
   const seeded = previousPartnersSeed
     .map((entry) => {
@@ -115,7 +156,13 @@ function buildPreviousPartners(userState) {
   const derived = userState.matches
     .map((entry) => {
       const profile = profiles.find((profile) => profile.id === entry.profileId);
-      if (!profile || previousPartnersSeed.some((seed) => seed.profileId === entry.profileId)) return null;
+      if (
+        !profile ||
+        (userState.blockedProfiles ?? new Set()).has(entry.profileId) ||
+        previousPartnersSeed.some((seed) => seed.profileId === entry.profileId)
+      ) {
+        return null;
+      }
       return {
         id: `previous-${entry.profileId}`,
         profile,
@@ -149,12 +196,13 @@ function snapshotForToken(token) {
     matches: userState.matches
       .map((entry) => {
         const profile = profiles.find((profile) => profile.id === entry.profileId);
-        if (!profile) return null;
+        if (!profile || (userState.blockedProfiles ?? new Set()).has(entry.profileId)) return null;
         const ratings = entry.ratings ?? { average: null, count: 0, userRating: null, host: null, guest: null };
         return {
           id: entry.id,
           profile,
-          ratings
+          ratings,
+          trust: trustSummary(userState, entry.profileId, entry.id)
         };
       })
       .filter(Boolean),
@@ -203,6 +251,8 @@ export const localApi = {
       swipes: new Map(),
       matches: [],
       messageThreads: new Map(),
+      blockedProfiles: new Set(),
+      trustEvents: [],
       user: { ...clone(defaultUser), email: next.email },
       teeTime: { ...buildTeeTime({ ...clone(defaultUser), email: next.email }), id: createToken() }
     });
@@ -336,5 +386,28 @@ export const localApi = {
     };
 
     return Promise.resolve(clone(target));
+  },
+
+  runTrustAction(matchId, action) {
+    const userState = requireUser(this.token);
+    const target = userState.matches.find((match) => match.id === matchId);
+    if (!target) return Promise.reject(new Error("Match not found"));
+
+    if (action === "block") {
+      userState.blockedProfiles.add(target.profileId);
+      userState.matches = userState.matches.filter((match) => match.profileId !== target.profileId);
+      userState.messageThreads.delete(matchId);
+      return Promise.resolve(snapshotForToken(this.token));
+    }
+
+    userState.trustEvents.push({
+      id: createToken(),
+      matchId,
+      profileId: target.profileId,
+      action,
+      createdAt: new Date().toISOString()
+    });
+
+    return Promise.resolve(snapshotForToken(this.token));
   }
 };

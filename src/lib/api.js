@@ -110,6 +110,12 @@ const httpApi = {
       method: "POST",
       body: JSON.stringify({ rating, note })
     });
+  },
+  runTrustAction(matchId, action) {
+    return request(`/api/matches/${matchId}/trust`, {
+      method: "POST",
+      body: JSON.stringify({ action })
+    });
   }
 };
 

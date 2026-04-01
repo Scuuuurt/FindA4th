@@ -21,6 +21,13 @@ function normalizeUser(nextUser) {
     handicap: toNumber(nextUser.handicap, defaultUser.handicap),
     distance: toNumber(nextUser.distance, defaultUser.distance),
     handicapRange: toNumber(nextUser.handicapRange, defaultUser.handicapRange),
+    availableDays: Array.isArray(nextUser.availableDays)
+      ? nextUser.availableDays
+      : defaultUser.availableDays,
+    preferredVibe: nextUser.preferredVibe ?? defaultUser.preferredVibe,
+    mobilityPreference: nextUser.mobilityPreference ?? defaultUser.mobilityPreference,
+    musicPreference: nextUser.musicPreference ?? defaultUser.musicPreference,
+    availabilityWindow: nextUser.availabilityWindow ?? defaultUser.availabilityWindow,
     groupSize:
       nextUser.playMode === "group_owner"
         ? Math.min(4, Math.max(2, toNumber(nextUser.groupSize, defaultUser.groupSize)))
@@ -43,7 +50,7 @@ export default function App() {
     api.bootstrap().then((data) => {
       startTransition(() => {
         setSnapshot(data);
-        setDraftUser(data.user);
+        setDraftUser(normalizeUser(data.user));
         if (data.user?.email) {
           setCredentials((current) => ({ ...current, email: data.user.email }));
         }
@@ -54,7 +61,7 @@ export default function App() {
   function commitSnapshot(nextSnapshot) {
     startTransition(() => {
       setSnapshot(nextSnapshot);
-      setDraftUser(nextSnapshot.user);
+      setDraftUser(normalizeUser(nextSnapshot.user));
       if (nextSnapshot.user?.email) {
         setCredentials((current) => ({ ...current, email: nextSnapshot.user.email }));
       }
@@ -176,6 +183,10 @@ export default function App() {
     });
   }
 
+  function handleTrustAction(matchId, action) {
+    api.runTrustAction(matchId, action).then(commitSnapshot);
+  }
+
   const activeMatch = snapshot?.matches?.find((match) => match.id === activeMatchId) ?? null;
 
   if (!snapshot) {
@@ -217,11 +228,12 @@ export default function App() {
       activeMatch={activeMatch}
       activeMessages={activeMessages}
       chatLoading={chatLoading}
-      onOpenMatch={handleOpenMatch}
-      onSendMessage={handleSendMessage}
-      onSubmitRating={handleSubmitRating}
-      onTeeTimeUpdate={handleTeeTimeUpdate}
-      onSettingsChange={handleUserChange}
+        onOpenMatch={handleOpenMatch}
+        onSendMessage={handleSendMessage}
+        onSubmitRating={handleSubmitRating}
+        onTrustAction={handleTrustAction}
+        onTeeTimeUpdate={handleTeeTimeUpdate}
+        onSettingsChange={handleUserChange}
       onFilterChange={handleFilterChange}
       onRefresh={handleRefresh}
       onSwipe={handleSwipe}

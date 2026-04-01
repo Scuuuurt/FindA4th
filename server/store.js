@@ -32,6 +32,10 @@ export function updateTeeTime(sessionToken, payload) {
   return repository.updateTeeTime(sessionToken, payload);
 }
 
+export function runTrustAction(sessionToken, matchId, payload) {
+  return repository.runTrustAction(sessionToken, matchId, payload);
+}
+
 export function setFilter(sessionToken, filter) {
   return repository.setFilter(sessionToken, filter);
 }

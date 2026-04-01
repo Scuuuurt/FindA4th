@@ -8,6 +8,7 @@ import {
   getTeeTimes,
   logout,
   login,
+  runTrustAction,
   setFilter,
   signup,
   storageMode,
@@ -134,6 +135,14 @@ app.post("/api/matches/:matchId/messages", async (request, response, next) => {
 app.post("/api/matches/:matchId/ratings", async (request, response, next) => {
   try {
     response.json(await submitRating(sessionToken(request), request.params.matchId, request.body));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/matches/:matchId/trust", async (request, response, next) => {
+  try {
+    response.json(await runTrustAction(sessionToken(request), request.params.matchId, request.body));
   } catch (error) {
     next(error);
   }

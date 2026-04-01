@@ -7,6 +7,11 @@ create table if not exists app_users (
   handicap numeric(4,1) not null default 12.4,
   distance integer not null default 25,
   handicap_range integer not null default 8,
+  preferred_vibe text not null default 'any',
+  mobility_preference text not null default 'either',
+  music_preference text not null default 'either',
+  available_days text not null default 'Sat,Sun',
+  availability_window text not null default 'Any time',
   play_mode text not null default 'group_owner',
   group_size integer not null default 3,
   current_filter text not null default 'all',
@@ -53,6 +58,22 @@ create table if not exists matches (
   unique (user_id, profile_id)
 );
 
+create table if not exists blocked_profiles (
+  user_id text not null references app_users(id) on delete cascade,
+  profile_id integer not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, profile_id)
+);
+
+create table if not exists trust_events (
+  id text primary key,
+  user_id text not null references app_users(id) on delete cascade,
+  profile_id integer not null,
+  match_id text not null references matches(id) on delete cascade,
+  action text not null check (action in ('report', 'no_show')),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists messages (
   id text primary key,
   match_id text not null references matches(id) on delete cascade,
@@ -75,3 +96,4 @@ create index if not exists idx_swipes_user_created_at on swipes(user_id, created
 create index if not exists idx_matches_user_created_at on matches(user_id, created_at desc);
 create index if not exists idx_messages_match_sent_at on messages(match_id, sent_at asc);
 create index if not exists idx_ratings_match_created_at on ratings(match_id, created_at desc);
+create index if not exists idx_trust_events_user_created_at on trust_events(user_id, created_at desc);

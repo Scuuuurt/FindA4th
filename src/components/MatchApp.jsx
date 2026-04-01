@@ -1,7 +1,34 @@
 import { useEffect, useState } from "react";
+import {
+  availabilityDays,
+  availabilityWindows,
+  verifiedCourses
+} from "../data/profiles";
 import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
+
+function DayPicker({ value, onChange }) {
+  function toggleDay(day) {
+    const next = value.includes(day) ? value.filter((item) => item !== day) : [...value, day];
+    onChange({ target: { name: "availableDays", value: next } });
+  }
+
+  return (
+    <div className="day-chip-row">
+      {availabilityDays.map((day) => (
+        <button
+          key={day}
+          className={`day-chip ${value.includes(day) ? "active" : ""}`.trim()}
+          type="button"
+          onClick={() => toggleDay(day)}
+        >
+          {day}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function SettingsPanel({ user, onChange }) {
   return (
@@ -11,7 +38,7 @@ function SettingsPanel({ user, onChange }) {
           <p className="topbar-label">Golfer profile</p>
           <h3>Your matching settings</h3>
         </div>
-        <div className="panel-status">Dialed for your home track</div>
+        <div className="panel-status">Verified course and fit controls</div>
       </div>
 
       <form className="profile-form" onSubmit={(event) => event.preventDefault()}>
@@ -34,10 +61,19 @@ function SettingsPanel({ user, onChange }) {
             </button>
           </div>
         </label>
+
         <label>
           Most played course
-          <input name="homeCourse" type="text" value={user.homeCourse} onChange={onChange} />
+          <select name="homeCourse" value={user.homeCourse} onChange={onChange}>
+            <option value="">Select a verified course</option>
+            {verifiedCourses.map((course) => (
+              <option key={course} value={course}>
+                {course}
+              </option>
+            ))}
+          </select>
         </label>
+
         {user.playMode === "group_owner" ? (
           <label>
             Golfers already in your group
@@ -52,6 +88,7 @@ function SettingsPanel({ user, onChange }) {
             />
           </label>
         ) : null}
+
         <label>
           Your handicap
           <input
@@ -64,6 +101,34 @@ function SettingsPanel({ user, onChange }) {
             onChange={onChange}
           />
         </label>
+
+        <label>
+          Preferred round style
+          <select name="preferredVibe" value={user.preferredVibe} onChange={onChange}>
+            <option value="any">Any vibe</option>
+            <option value="social">Mostly social</option>
+            <option value="competitive">Mostly competitive</option>
+          </select>
+        </label>
+
+        <label>
+          Walking or cart
+          <select name="mobilityPreference" value={user.mobilityPreference} onChange={onChange}>
+            <option value="either">Either is fine</option>
+            <option value="walking">Prefer walking</option>
+            <option value="cart">Prefer carts</option>
+          </select>
+        </label>
+
+        <label>
+          Music preference
+          <select name="musicPreference" value={user.musicPreference} onChange={onChange}>
+            <option value="either">Either is fine</option>
+            <option value="no_music">Prefer no music</option>
+            <option value="music_okay">Music is okay</option>
+          </select>
+        </label>
+
         <label>
           Looking within
           <div className="range-row">
@@ -79,6 +144,7 @@ function SettingsPanel({ user, onChange }) {
             <span>{user.distance} miles</span>
           </div>
         </label>
+
         <label>
           Handicap match range
           <div className="range-row">
@@ -93,6 +159,22 @@ function SettingsPanel({ user, onChange }) {
             />
             <span>±{user.handicapRange}</span>
           </div>
+        </label>
+
+        <label>
+          Typical time window
+          <select name="availabilityWindow" value={user.availabilityWindow} onChange={onChange}>
+            {availabilityWindows.map((window) => (
+              <option key={window} value={window}>
+                {window}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="profile-span-2">
+          Days you usually play
+          <DayPicker value={user.availableDays} onChange={onChange} />
         </label>
       </form>
     </section>
@@ -135,7 +217,14 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
       <form className="profile-form" onSubmit={handleSubmit}>
         <label>
           Course
-          <input name="homeCourse" type="text" value={draft.homeCourse} onChange={handleChange} />
+          <select name="homeCourse" value={draft.homeCourse} onChange={handleChange}>
+            <option value="">Select a verified course</option>
+            {verifiedCourses.map((course) => (
+              <option key={course} value={course}>
+                {course}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Tee date
@@ -245,11 +334,17 @@ function MatchWorkspace({
   messages,
   loading,
   onSendMessage,
-  onSubmitRating
+  onSubmitRating,
+  onTrustAction
 }) {
   const [draftMessage, setDraftMessage] = useState("");
   const [rating, setRating] = useState(activeMatch?.ratings?.userRating?.rating ?? 0);
   const [note, setNote] = useState(activeMatch?.ratings?.userRating?.note ?? "");
+
+  useEffect(() => {
+    setRating(activeMatch?.ratings?.userRating?.rating ?? 0);
+    setNote(activeMatch?.ratings?.userRating?.note ?? "");
+  }, [activeMatch]);
 
   if (!activeMatch) {
     return (
@@ -278,6 +373,27 @@ function MatchWorkspace({
           {activeMatch.ratings.average ? `${activeMatch.ratings.average} avg` : "Awaiting ratings"}
         </div>
       </div>
+
+      <div className="trust-summary-grid">
+        <div className="trust-card">
+          <strong>{activeMatch.profile.reliabilityRating?.toFixed(1) ?? "4.8"}</strong>
+          <span>Reliability</span>
+        </div>
+        <div className="trust-card">
+          <strong>{activeMatch.profile.completedRounds ?? 0}</strong>
+          <span>Completed rounds</span>
+        </div>
+        <div className="trust-card">
+          <strong>{activeMatch.profile.verifiedCourse ? "Yes" : "No"}</strong>
+          <span>Verified course</span>
+        </div>
+      </div>
+
+      {(activeMatch.trust?.reported || activeMatch.trust?.noShow) && (
+        <div className="trust-banner">
+          {activeMatch.trust.reported ? "Reported to trust center" : "No-show flagged for this round"}
+        </div>
+      )}
 
       <div className="chat-thread">
         {loading ? (
@@ -316,6 +432,18 @@ function MatchWorkspace({
           Send
         </button>
       </form>
+
+      <div className="trust-actions">
+        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "report")}>
+          Report
+        </button>
+        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "no_show")}>
+          Flag no-show
+        </button>
+        <button className="ghost-button danger" type="button" onClick={() => onTrustAction(activeMatch.id, "block")}>
+          Block golfer
+        </button>
+      </div>
 
       <div className="rating-panel">
         <div>
@@ -359,6 +487,7 @@ export default function MatchApp({
   onOpenMatch,
   onSendMessage,
   onSubmitRating,
+  onTrustAction,
   onTeeTimeUpdate,
   onLogout,
   onSettingsChange,
@@ -390,30 +519,30 @@ export default function MatchApp({
             <span>{teeTime.postingType === "single" ? "Solo posting" : "Open slots live"}</span>
           </article>
           <article>
-            <strong>{teeTime.teeTime}</strong>
-            <span>Tee time posted</span>
+            <strong>{user.availableDays.length}</strong>
+            <span>Preferred play days</span>
           </article>
           <article>
-            <strong>{teeTime.holes}</strong>
-            <span>Holes posted</span>
+            <strong>{user.homeCourse ? "Yes" : "No"}</strong>
+            <span>Verified course selected</span>
           </article>
         </div>
 
         <div className="value-grid">
           <article>
-            <span>01</span>
-            <h2>Group-first profiles</h2>
-            <p>Match a single player into your open slot or link two partial groups.</p>
+            <span>05</span>
+            <h2>Preference filters</h2>
+            <p>Match for vibe, walking versus cart, music preference, and the kind of round you want.</p>
           </article>
           <article>
-            <span>02</span>
-            <h2>Tee time aware</h2>
-            <p>Profiles highlight course, day, handicap range, and exact opening count.</p>
+            <span>06</span>
+            <h2>Availability-aware</h2>
+            <p>Shape the deck around the days and time windows you actually play most often.</p>
           </article>
           <article>
-            <span>03</span>
-            <h2>Fast decision flow</h2>
-            <p>Swipe left to pass, right to connect, then lock in the round together.</p>
+            <span>09</span>
+            <h2>Trust and safety</h2>
+            <p>Show reliability, report issues, flag no-shows, and block a golfer when needed.</p>
           </article>
         </div>
       </section>
@@ -459,9 +588,7 @@ export default function MatchApp({
                 <span className="summary-chip solid">
                   {teeTime.postingType === "single" ? "Looking for a group" : "Ready to match"}
                 </span>
-                <span className="summary-chip">
-                  {teeTime.postingType === "single" ? "Solo golfer today" : "Hosting a group today"}
-                </span>
+                <span className="summary-chip">Verified course</span>
               </div>
             </article>
             <article className="summary-card">
@@ -470,13 +597,14 @@ export default function MatchApp({
                 {deck.length} profile{deck.length === 1 ? "" : "s"}
               </strong>
               <span>
-                Within {user.distance} miles · handicap ±{user.handicapRange}
+                Within {user.distance} miles · handicap ±{user.handicapRange} · {user.availabilityWindow}
               </span>
               <div className="summary-accent-row">
                 <span className="summary-chip">Home course: {user.homeCourse}</span>
                 <span className="summary-chip">
                   {user.playMode === "single" ? "Mode: single" : `Mode: group of ${user.groupSize}`}
                 </span>
+                <span className="summary-chip">Music: {user.musicPreference.replace("_", " ")}</span>
               </div>
             </article>
           </section>
@@ -590,6 +718,7 @@ export default function MatchApp({
             loading={chatLoading}
             onSendMessage={onSendMessage}
             onSubmitRating={onSubmitRating}
+            onTrustAction={onTrustAction}
           />
         </section>
       </main>
