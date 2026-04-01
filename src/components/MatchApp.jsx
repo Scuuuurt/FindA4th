@@ -2,13 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import {
   availabilityDays,
   availabilityWindows,
+  bookingStatusOptions,
+  gameStyleOptions,
   genderOptions,
   genderPreferenceOptions,
+  seriousnessOptions,
+  socialPreferenceOptions,
   verifiedCourses
 } from "../data/profiles";
 import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
+const CANCEL_REASONS = ["Schedule changed", "Booked elsewhere", "Wrong fit", "Weather concern"];
 
 function DayPicker({ value, onChange }) {
   function toggleDay(day) {
@@ -67,6 +72,40 @@ function NotificationCenter({ notifications, onRead }) {
   );
 }
 
+function InvitePanel({ invites, onCreateInvite }) {
+  return (
+    <section className="invite-panel">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Invite tools</p>
+          <h3>Share this round outside the app</h3>
+        </div>
+        <div className="panel-status">{invites.length} live invites</div>
+      </div>
+      <div className="invite-actions-row">
+        <button className="ghost-button" type="button" onClick={() => onCreateInvite("friend")}>
+          Invite a friend
+        </button>
+        <button className="ghost-button" type="button" onClick={() => onCreateInvite("share")}>
+          Share posting
+        </button>
+        <button className="ghost-button" type="button" onClick={() => onCreateInvite("private")}>
+          Private link
+        </button>
+      </div>
+      <div className="invite-list">
+        {invites.slice(0, 3).map((invite) => (
+          <article className="invite-item" key={invite.id}>
+            <strong>{invite.type}</strong>
+            <p>{invite.destination}</p>
+            <span>{invite.value}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SettingsPanel({ user, onChange }) {
   return (
     <section className="preferences-panel">
@@ -114,29 +153,13 @@ function SettingsPanel({ user, onChange }) {
         {user.playMode === "group_owner" ? (
           <label>
             Golfers already in your group
-            <input
-              name="groupSize"
-              type="number"
-              min="2"
-              max="4"
-              step="1"
-              value={user.groupSize}
-              onChange={onChange}
-            />
+            <input name="groupSize" type="number" min="2" max="4" step="1" value={user.groupSize} onChange={onChange} />
           </label>
         ) : null}
 
         <label>
           Your handicap
-          <input
-            name="handicap"
-            type="number"
-            min="0"
-            max="54"
-            step="0.1"
-            value={user.handicap}
-            onChange={onChange}
-          />
+          <input name="handicap" type="number" min="0" max="54" step="0.1" value={user.handicap} onChange={onChange} />
         </label>
 
         <label>
@@ -145,6 +168,39 @@ function SettingsPanel({ user, onChange }) {
             <option value="any">Any vibe</option>
             <option value="social">Mostly social</option>
             <option value="competitive">Mostly competitive</option>
+          </select>
+        </label>
+
+        <label>
+          How serious are you about score
+          <select name="seriousness" value={user.seriousness} onChange={onChange}>
+            {seriousnessOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Side game preference
+          <select name="gameStyle" value={user.gameStyle} onChange={onChange}>
+            {gameStyleOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Conversation style
+          <select name="socialStyle" value={user.socialStyle} onChange={onChange}>
+            {socialPreferenceOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -189,17 +245,35 @@ function SettingsPanel({ user, onChange }) {
         </label>
 
         <label>
+          Beginner-friendly rounds
+          <select
+            name="beginnerFriendly"
+            value={user.beginnerFriendly ? "yes" : "no"}
+            onChange={(event) => onChange({ target: { name: "beginnerFriendly", value: event.target.value === "yes" } })}
+          >
+            <option value="yes">Open to mixed skill groups</option>
+            <option value="no">Prefer golfers near my level</option>
+          </select>
+        </label>
+
+        <label>
+          Fallback if the fit is close
+          <select
+            name="wouldJoinAnotherGroup"
+            value={user.wouldJoinAnotherGroup ? "yes" : "no"}
+            onChange={(event) =>
+              onChange({ target: { name: "wouldJoinAnotherGroup", value: event.target.value === "yes" } })
+            }
+          >
+            <option value="yes">Allow merge suggestions</option>
+            <option value="no">Only direct fits</option>
+          </select>
+        </label>
+
+        <label>
           Looking within
           <div className="range-row">
-            <input
-              name="distance"
-              type="range"
-              min="1"
-              max="50"
-              step="1"
-              value={user.distance}
-              onChange={onChange}
-            />
+            <input name="distance" type="range" min="1" max="50" step="1" value={user.distance} onChange={onChange} />
             <span>{user.distance} miles</span>
           </div>
         </label>
@@ -272,14 +346,12 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
               : "Start with your tee time and find a 4th"}
           </h3>
         </div>
-        <div className="panel-status">
-          {user.playMode === "single" ? "Single posting" : "Need one more golfer"}
-        </div>
+        <div className="panel-status">{user.playMode === "single" ? "Single posting" : "Need one more golfer"}</div>
       </div>
 
       <p className="posting-lead">
-        This is the core demo action. Pick the course, date, time, and vibe, then let the rest of
-        the app show how `FindA4th` helps complete the round.
+        Build a real demo posting: tee time, booking status, expected spend, meeting plan, and fallback options if the
+        perfect fourth does not show up.
       </p>
 
       <form className="profile-form" onSubmit={handleSubmit}>
@@ -290,6 +362,16 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
             {verifiedCourses.map((course) => (
               <option key={course} value={course}>
                 {course}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Booking status
+          <select name="bookingStatus" value={draft.bookingStatus} onChange={handleChange}>
+            {bookingStatusOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
               </option>
             ))}
           </select>
@@ -309,6 +391,42 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
             <option value="18">18 holes</option>
           </select>
         </label>
+        <label>
+          Preferred skill window
+          <input
+            name="preferredSkillWindow"
+            type="text"
+            value={draft.preferredSkillWindow ?? ""}
+            placeholder="8-18 handicap"
+            onChange={handleChange}
+          />
+        </label>
+        <label>
+          Walk or cart
+          <select name="roundMobility" value={draft.roundMobility ?? "Either"} onChange={handleChange}>
+            <option value="Either">Either</option>
+            <option value="Walking">Walking</option>
+            <option value="Cart">Cart</option>
+          </select>
+        </label>
+        <label>
+          Green fee range
+          <input name="greenFeeRange" type="text" value={draft.greenFeeRange ?? ""} onChange={handleChange} />
+        </label>
+        <label>
+          Meeting spot
+          <input name="meetingSpot" type="text" value={draft.meetingSpot ?? ""} onChange={handleChange} />
+        </label>
+        <label>
+          If a direct fourth is not there
+          <input
+            name="fallbackMode"
+            type="text"
+            value={draft.fallbackMode ?? ""}
+            placeholder="Happy to merge with a twosome if it is the right fit"
+            onChange={handleChange}
+          />
+        </label>
         <label className="profile-span-2">
           Round note
           <textarea
@@ -327,7 +445,7 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
   );
 }
 
-function DemoSpotlight({ user, teeTime, deck, matches, notifications }) {
+function DemoSpotlight({ teeTime, deck, matches, notifications, invites }) {
   return (
     <section className="demo-spotlight">
       <div className="spotlight-header">
@@ -345,15 +463,15 @@ function DemoSpotlight({ user, teeTime, deck, matches, notifications }) {
         </article>
         <article>
           <strong>{deck.length}</strong>
-          <span>Smart filtered candidates</span>
+          <span>Ranked candidates by fit</span>
         </article>
         <article>
           <strong>{matches.length}</strong>
-          <span>Matches ready to chat</span>
+          <span>Matches ready to confirm</span>
         </article>
         <article>
-          <strong>{notifications.filter((item) => item.unread).length}</strong>
-          <span>Live product notifications</span>
+          <strong>{notifications.filter((item) => item.unread).length + invites.length}</strong>
+          <span>Live activity and invite flows</span>
         </article>
       </div>
     </section>
@@ -374,10 +492,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
       <div className="match-list">
         {matches.length ? (
           matches.map((match) => (
-            <article
-              className={`match-item ${activeMatchId === match.id ? "selected" : ""}`.trim()}
-              key={match.id}
-            >
+            <article className={`match-item ${activeMatchId === match.id ? "selected" : ""}`.trim()} key={match.id}>
               <div className="match-avatar" style={{ backgroundImage: match.profile.image }} aria-hidden="true" />
               <div className="match-copy">
                 <h4 className="match-name">{match.profile.name}</h4>
@@ -386,14 +501,18 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
                   {match.profile.slots > 1 ? "s" : ""}
                 </p>
                 <p className="match-meta">
-                  {match.ratings.average ? `${match.ratings.average} avg rating` : "Ready to coordinate"}
+                  {match.confirmation?.confirmedByBoth ? "Round confirmed" : "Needs round confirmation"}
                 </p>
               </div>
               <div className="match-cta-group">
                 <button className="match-action" type="button" onClick={() => onOpenMatch(match)}>
                   Open chat
                 </button>
-                <button className="ghost-button compact" type="button" onClick={() => onCancelMatch(match.id)}>
+                <button
+                  className="ghost-button compact"
+                  type="button"
+                  onClick={() => onCancelMatch(match.id, "Schedule changed")}
+                >
                   Cancel
                 </button>
               </div>
@@ -403,9 +522,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
           <article className="match-item">
             <div className="match-copy">
               <h4 className="match-name">No matches yet</h4>
-              <p className="match-plan">
-                Post a tee time, then swipe through golfers and groups that feel like the right fit.
-              </p>
+              <p className="match-plan">Post a tee time, then swipe through golfers and groups that feel like the right fit.</p>
             </div>
           </article>
         )}
@@ -414,7 +531,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
   );
 }
 
-function RoundHistoryPanel({ rounds, onSaveScorecard }) {
+function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner }) {
   return (
     <section className="history-panel">
       <div className="panel-header">
@@ -433,19 +550,27 @@ function RoundHistoryPanel({ rounds, onSaveScorecard }) {
                 {round.dateLabel} · {round.course} · Played with {round.partnerName}
               </p>
               <span>{round.note}</span>
+              {round.confirmation ? (
+                <div className="history-meta-row">
+                  <span>{round.confirmation.walkOrCart}</span>
+                  <span>{round.confirmation.greenFee}</span>
+                  <span>{round.confirmation.meetingSpot}</span>
+                </div>
+              ) : null}
             </div>
             <div className="history-scorecard">
               <div className="scorecard-summary">
                 <strong>{round.scorecard.total}</strong>
                 <span>{round.scorecard.holes}-hole total</span>
               </div>
-              <button
-                className="ghost-button compact"
-                type="button"
-                onClick={() => onSaveScorecard(round.id, round.scorecard.scores)}
-              >
+              <button className="ghost-button compact" type="button" onClick={() => onSaveScorecard(round.id, round.scorecard.scores)}>
                 Save scorecard
               </button>
+              {round.playAgainReady ? (
+                <button className="ghost-button compact" type="button" onClick={() => onReInvitePartner(round.partnerName)}>
+                  Play again
+                </button>
+              ) : null}
             </div>
           </article>
         ))}
@@ -474,6 +599,15 @@ function CoursePagesPanel({ courses }) {
               <span>{course.activePostings} active postings</span>
               <span>{course.bestFor}</span>
             </div>
+            <div className="course-meta-row">
+              <span>{course.type}</span>
+              <span>{course.priceTier}</span>
+              <span>{course.difficulty}</span>
+            </div>
+            <div className="course-meta-row">
+              <span>{course.paceExpectation}</span>
+              <span>{course.bestTimeWindows.join(" / ")}</span>
+            </div>
           </article>
         ))}
       </div>
@@ -487,7 +621,7 @@ function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvite
       <div className="match-panel-header">
         <div>
           <p className="topbar-label">Previous partners</p>
-          <h3>Favorite or re-invite golfers you already liked</h3>
+          <h3>Favorite, trust, and re-invite golfers you already liked</h3>
         </div>
         <span className="match-count">{previousPartners.length}</span>
       </div>
@@ -502,6 +636,11 @@ function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvite
                 <p className="match-plan">
                   {entry.lastPlayed} · {entry.chemistry}
                 </p>
+                <div className="partner-badges">
+                  {entry.trusted ? <span className="tag verified">Trusted golfer</span> : null}
+                  {entry.isFavorite ? <span className="tag">Favorite</span> : null}
+                  {entry.trustedLabel ? <span className="tag">{entry.trustedLabel}</span> : null}
+                </div>
                 {entry.availablePosting ? (
                   <div className="partner-posting">
                     <strong>
@@ -518,7 +657,7 @@ function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvite
               </div>
               <div className="partner-actions">
                 <button className="ghost-button compact" type="button" onClick={() => onFavoritePartner(entry.profile.id)}>
-                  Favorite
+                  {entry.isFavorite ? "Favorited" : "Favorite"}
                 </button>
                 <button className="match-action" type="button" onClick={() => onReInvitePartner(entry.profile.id)}>
                   Re-invite
@@ -568,6 +707,16 @@ function ProfileModal({ profile, onClose }) {
                   {tag}
                 </span>
               ))}
+              {profile.verifiedGolfer ? <span className="tag verified">Verified golfer</span> : null}
+              {profile.beginnerFriendly ? <span className="tag">Beginner-friendly</span> : null}
+            </div>
+            <div className="detail-grid">
+              <div className="detail-pill">Compatibility: {profile.compatibility?.score ?? 0}%</div>
+              <div className="detail-pill">Style: {profile.socialStyle}</div>
+              <div className="detail-pill">Game: {profile.gameStyle}</div>
+              <div className="detail-pill">Score focus: {profile.seriousness}</div>
+              <div className="detail-pill">No-shows: {profile.noShowCount}</div>
+              <div className="detail-pill">Cancellation rate: {profile.cancellationRate}</div>
             </div>
           </div>
         </div>
@@ -582,15 +731,39 @@ function MatchWorkspace({
   loading,
   onSendMessage,
   onSubmitRating,
-  onTrustAction
+  onTrustAction,
+  onConfirmationUpdate
 }) {
   const [draftMessage, setDraftMessage] = useState("");
-  const [rating, setRating] = useState(activeMatch?.ratings?.userRating?.rating ?? 0);
-  const [note, setNote] = useState(activeMatch?.ratings?.userRating?.note ?? "");
+  const [cancelReason, setCancelReason] = useState(CANCEL_REASONS[0]);
+  const [confirmation, setConfirmation] = useState(activeMatch?.confirmation ?? null);
+  const [review, setReview] = useState({
+    overall: activeMatch?.ratings?.userRating?.rating ?? 0,
+    note: activeMatch?.ratings?.userRating?.note ?? "",
+    categories:
+      activeMatch?.ratings?.categories ?? {
+        pace: 5,
+        friendliness: 5,
+        reliability: 5,
+        etiquette: 5
+      },
+    wouldPlayAgain: activeMatch?.ratings?.wouldPlayAgain ?? true
+  });
 
   useEffect(() => {
-    setRating(activeMatch?.ratings?.userRating?.rating ?? 0);
-    setNote(activeMatch?.ratings?.userRating?.note ?? "");
+    setConfirmation(activeMatch?.confirmation ?? null);
+    setReview({
+      overall: activeMatch?.ratings?.userRating?.rating ?? 0,
+      note: activeMatch?.ratings?.userRating?.note ?? "",
+      categories:
+        activeMatch?.ratings?.categories ?? {
+          pace: 5,
+          friendliness: 5,
+          reliability: 5,
+          etiquette: 5
+        },
+      wouldPlayAgain: activeMatch?.ratings?.wouldPlayAgain ?? true
+    });
   }, [activeMatch]);
 
   if (!activeMatch) {
@@ -599,10 +772,28 @@ function MatchWorkspace({
         <p className="topbar-label">Match workspace</p>
         <h3>Open a match to coordinate the round</h3>
         <p className="chat-empty-copy">
-          The full demo story includes chat, cancellation, no-show protection, and post-round ratings.
+          The full demo story includes chat, confirmation, cancellations, trust tools, and post-round ratings.
         </p>
       </section>
     );
+  }
+
+  function updateConfirmationField(event) {
+    const { name, value } = event.target;
+    setConfirmation((current) => ({
+      ...(current ?? {}),
+      [name]: value
+    }));
+  }
+
+  function updateCategory(key, value) {
+    setReview((current) => ({
+      ...current,
+      categories: {
+        ...current.categories,
+        [key]: Number(value)
+      }
+    }));
   }
 
   return (
@@ -615,9 +806,7 @@ function MatchWorkspace({
             {activeMatch.profile.course} · {activeMatch.profile.teeTime}
           </p>
         </div>
-        <div className="chat-pill">
-          {activeMatch.ratings.average ? `${activeMatch.ratings.average} avg` : "Awaiting ratings"}
-        </div>
+        <div className="chat-pill">{activeMatch.confirmation?.confirmedByBoth ? "Confirmed" : "Needs confirmation"}</div>
       </div>
 
       <div className="trust-summary-grid">
@@ -630,16 +819,72 @@ function MatchWorkspace({
           <span>Completed rounds</span>
         </div>
         <div className="trust-card">
-          <strong>{activeMatch.profile.verifiedCourse ? "Yes" : "No"}</strong>
-          <span>Verified course</span>
+          <strong>{activeMatch.profile.verifiedGolfer ? "Yes" : "No"}</strong>
+          <span>Verified golfer</span>
         </div>
       </div>
 
-      {(activeMatch.trust?.reported || activeMatch.trust?.noShow) && (
-        <div className="trust-banner">
-          {activeMatch.trust.reported ? "Reported to trust center" : "No-show flagged for this round"}
+      <section className="confirmation-panel">
+        <div className="panel-header">
+          <div>
+            <p className="topbar-label">Round confirmation</p>
+            <h4>Lock in the details before the round</h4>
+          </div>
+          <button
+            className="ghost-button compact"
+            type="button"
+            onClick={() =>
+              onConfirmationUpdate(activeMatch.id, {
+                ...confirmation,
+                confirmedByBoth: true
+              })
+            }
+          >
+            Confirm round
+          </button>
         </div>
-      )}
+        <div className="profile-form">
+          <label>
+            Tee time
+            <input name="teeTime" type="text" value={confirmation?.teeTime ?? ""} onChange={updateConfirmationField} />
+          </label>
+          <label>
+            Course
+            <input name="course" type="text" value={confirmation?.course ?? ""} onChange={updateConfirmationField} />
+          </label>
+          <label>
+            Booking status
+            <input
+              name="bookingStatus"
+              type="text"
+              value={confirmation?.bookingStatus ?? ""}
+              onChange={updateConfirmationField}
+            />
+          </label>
+          <label>
+            Walk or cart
+            <input
+              name="walkOrCart"
+              type="text"
+              value={confirmation?.walkOrCart ?? ""}
+              onChange={updateConfirmationField}
+            />
+          </label>
+          <label>
+            Green fee
+            <input name="greenFee" type="text" value={confirmation?.greenFee ?? ""} onChange={updateConfirmationField} />
+          </label>
+          <label>
+            Meeting spot
+            <input
+              name="meetingSpot"
+              type="text"
+              value={confirmation?.meetingSpot ?? ""}
+              onChange={updateConfirmationField}
+            />
+          </label>
+        </div>
+      </section>
 
       <div className="chat-thread">
         {loading ? (
@@ -680,50 +925,88 @@ function MatchWorkspace({
       </form>
 
       <div className="trust-actions">
-        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "report")}>
+        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "report", "Reported from demo trust tools")}>
           Report
         </button>
-        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "no_show")}>
+        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "no_show", "No-show flagged in demo")}>
           Flag no-show
         </button>
-        <button className="ghost-button danger" type="button" onClick={() => onTrustAction(activeMatch.id, "block")}>
+        <select className="compact-select" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
+          {CANCEL_REASONS.map((reason) => (
+            <option key={reason} value={reason}>
+              {reason}
+            </option>
+          ))}
+        </select>
+        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "cancel", cancelReason)}>
+          Log cancellation
+        </button>
+        <button className="ghost-button danger" type="button" onClick={() => onTrustAction(activeMatch.id, "block", "Blocked from demo trust center")}>
           Block golfer
         </button>
       </div>
 
       <div className="rating-panel">
         <div>
-          <p className="topbar-label">Post-round rating</p>
+          <p className="topbar-label">Post-round reputation</p>
           <h4>Rate how the pairing went</h4>
-          <p className="chat-empty-copy">
-            This demo also shows how trust, scorecards, and round history build over time.
-          </p>
+          <p className="chat-empty-copy">Track pace, friendliness, reliability, etiquette, and whether you would play together again.</p>
         </div>
 
         <div className="rating-stars" role="radiogroup" aria-label="Rate this match">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
               key={star}
-              className={`rating-star ${rating >= star ? "active" : ""}`.trim()}
+              className={`rating-star ${review.overall >= star ? "active" : ""}`.trim()}
               type="button"
-              onClick={() => setRating(star)}
+              onClick={() => setReview((current) => ({ ...current, overall: star }))}
             >
               ★
             </button>
           ))}
         </div>
+
+        <div className="profile-form">
+          {["pace", "friendliness", "reliability", "etiquette"].map((key) => (
+            <label key={key}>
+              {key[0].toUpperCase() + key.slice(1)}
+              <select value={review.categories[key]} onChange={(event) => updateCategory(key, event.target.value)}>
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <label className="profile-span-2">
+            Would play again
+            <div className="segmented-control">
+              <button
+                className={`segment ${review.wouldPlayAgain ? "active" : ""}`.trim()}
+                type="button"
+                onClick={() => setReview((current) => ({ ...current, wouldPlayAgain: true }))}
+              >
+                Yes
+              </button>
+              <button
+                className={`segment ${!review.wouldPlayAgain ? "active" : ""}`.trim()}
+                type="button"
+                onClick={() => setReview((current) => ({ ...current, wouldPlayAgain: false }))}
+              >
+                No
+              </button>
+            </div>
+          </label>
+        </div>
+
         <textarea
           className="rating-note"
           placeholder="Optional note about pace, etiquette, side games, or overall vibe"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
+          value={review.note}
+          onChange={(event) => setReview((current) => ({ ...current, note: event.target.value }))}
         />
-        <button
-          className="primary-button compact"
-          type="button"
-          onClick={() => onSubmitRating(activeMatch.id, rating, note)}
-          disabled={!rating}
-        >
+        <button className="primary-button compact" type="button" onClick={() => onSubmitRating(activeMatch.id, review)} disabled={!review.overall}>
           Save rating
         </button>
       </div>
@@ -741,6 +1024,7 @@ export default function MatchApp({
   notifications,
   courses,
   roundHistory,
+  invites,
   activeMatch,
   activeMessages,
   chatLoading,
@@ -753,6 +1037,8 @@ export default function MatchApp({
   onReInvitePartner,
   onSaveScorecard,
   onCancelMatch,
+  onConfirmationUpdate,
+  onCreateInvite,
   onTeeTimeUpdate,
   onLogout,
   onSettingsChange,
@@ -776,16 +1062,16 @@ export default function MatchApp({
           <p className="eyebrow">TEE TIME MATCHING</p>
           <h1>Post a tee time and build the right foursome.</h1>
           <p className="hero-text">
-            Today’s demo shows the full `FindA4th` story: tee-time posting, smart discovery,
-            profile details, notifications, trust tools, scorecards, and repeat rounds.
+            Today’s demo shows a fuller `FindA4th` product: smarter tee-time posting, ranked matching, round confirmation,
+            trust and reputation tools, course intelligence, invites, and repeat rounds.
           </p>
         </div>
 
         <div className="hero-marquee">
-          <span>Post a tee time first</span>
-          <span>Notifications and match chat</span>
+          <span>Smarter tee-time posting</span>
+          <span>Match rankings and confirmations</span>
           <span>Round history and scorecards</span>
-          <span>Course pages and re-invites</span>
+          <span>Course pages and invite flows</span>
         </div>
 
         <div className="hero-stats">
@@ -807,17 +1093,17 @@ export default function MatchApp({
           <article>
             <span>01</span>
             <h2>Tee-time first</h2>
-            <p>The product starts with a real round, then builds everything else around filling it.</p>
+            <p>The product starts with a real round, then builds discovery, trust, and rebooking around it.</p>
           </article>
           <article>
             <span>02</span>
             <h2>Golf-native trust</h2>
-            <p>No-shows, ratings, repeat partners, and scorecards create a real golf network feel.</p>
+            <p>No-shows, cancellations, pace ratings, and would-play-again signals create a believable marketplace.</p>
           </article>
           <article>
             <span>03</span>
-            <h2>Course-driven discovery</h2>
-            <p>Players and groups feel anchored to real courses, real timing, and believable preferences.</p>
+            <h2>Repeat rounds</h2>
+            <p>Previous partners, round logs, and re-invites make the app feel sticky instead of one-off.</p>
           </article>
         </div>
 
@@ -829,6 +1115,7 @@ export default function MatchApp({
             <div className="summary-accent-row">
               <span className="summary-chip">{featuredCourse.location}</span>
               <span className="summary-chip">{featuredCourse.activePostings} active demo postings</span>
+              <span className="summary-chip">{featuredCourse.priceTier}</span>
             </div>
           </section>
         ) : null}
@@ -841,9 +1128,7 @@ export default function MatchApp({
             <div>
               <p className="topbar-label">FindA4th</p>
               <h2>Complete the round</h2>
-              <p className="topbar-subtitle">
-                Post a tee time, compare detailed golfer cards, coordinate the match, and save the round.
-              </p>
+              <p className="topbar-subtitle">Post a tee time, rank the best fits, confirm the round, and save it to your golf history.</p>
             </div>
             <div className="topbar-actions">
               <button className="ghost-button" type="button" onClick={onRefresh}>
@@ -855,15 +1140,9 @@ export default function MatchApp({
             </div>
           </header>
 
-          <DemoSpotlight
-            user={user}
-            teeTime={teeTime}
-            deck={deck}
-            matches={matches}
-            notifications={notifications}
-          />
-
+          <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
           <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
+          <InvitePanel invites={invites} onCreateInvite={onCreateInvite} />
 
           <section className="view-tabs" aria-label="Primary app views">
             {[
@@ -892,37 +1171,29 @@ export default function MatchApp({
                 <article className="summary-card primary">
                   <p>Posted tee time</p>
                   <strong>{teeTime.dayLabel}</strong>
-                  {teeTime.postingType === "single" ? (
-                    <span>
-                      {teeTime.homeCourse} · {teeTime.holes} holes · You are looking to join an existing
-                      group for this round
-                    </span>
-                  ) : (
-                    <span>
-                      {teeTime.homeCourse} · {teeTime.holes} holes · {teeTime.golfersCommitted} golfers ·{" "}
-                      {teeTime.openSlots} open spot{teeTime.openSlots > 1 ? "s" : ""}
-                    </span>
-                  )}
+                  <span>
+                    {teeTime.homeCourse} · {teeTime.holes} holes · {teeTime.bookingStatus} · {teeTime.greenFeeRange}
+                  </span>
                   {teeTime.note ? <em className="summary-note">"{teeTime.note}"</em> : null}
                   <div className="summary-accent-row">
                     <span className="summary-chip solid">
                       {teeTime.postingType === "single" ? "Looking for a group" : "Looking for a 4th"}
                     </span>
-                    <span className="summary-chip">Verified course</span>
+                    <span className="summary-chip">{teeTime.roundMobility}</span>
+                    <span className="summary-chip">{teeTime.preferredSkillWindow}</span>
                   </div>
                 </article>
                 <article className="summary-card">
                   <p>Ideal match settings</p>
-                  <strong>
-                    {user.preferredVibe === "any" ? "Any vibe" : user.preferredVibe}
-                  </strong>
+                  <strong>{user.preferredVibe === "any" ? "Any vibe" : user.preferredVibe}</strong>
                   <span>
                     Within {user.distance} miles · handicap ±{user.handicapRange} · {user.availabilityWindow}
                   </span>
                   <div className="summary-accent-row">
-                    <span className="summary-chip">Music: {user.musicPreference.replace("_", " ")}</span>
-                    <span className="summary-chip">Play with: {user.genderPreference}</span>
-                    <span className="summary-chip">{user.availableDays.join(" / ")}</span>
+                    <span className="summary-chip">Score: {user.seriousness}</span>
+                    <span className="summary-chip">Game: {user.gameStyle}</span>
+                    <span className="summary-chip">Style: {user.socialStyle}</span>
+                    <span className="summary-chip">{user.wouldJoinAnotherGroup ? "Merge okay" : "Direct fits only"}</span>
                   </div>
                 </article>
               </section>
@@ -968,17 +1239,12 @@ export default function MatchApp({
           ) : null}
 
           {activeTab === "history" ? (
-            <RoundHistoryPanel rounds={roundHistory} onSaveScorecard={onSaveScorecard} />
+            <RoundHistoryPanel rounds={roundHistory} onSaveScorecard={onSaveScorecard} onReInvitePartner={onReInvitePartner} />
           ) : null}
 
           {activeTab === "courses" ? <CoursePagesPanel courses={courses} /> : null}
 
-          <MatchList
-            matches={matches}
-            activeMatchId={activeMatch?.id}
-            onOpenMatch={onOpenMatch}
-            onCancelMatch={onCancelMatch}
-          />
+          <MatchList matches={matches} activeMatchId={activeMatch?.id} onOpenMatch={onOpenMatch} onCancelMatch={onCancelMatch} />
           <MatchWorkspace
             activeMatch={activeMatch}
             messages={activeMessages}
@@ -986,6 +1252,7 @@ export default function MatchApp({
             onSendMessage={onSendMessage}
             onSubmitRating={onSubmitRating}
             onTrustAction={onTrustAction}
+            onConfirmationUpdate={onConfirmationUpdate}
           />
         </section>
       </main>

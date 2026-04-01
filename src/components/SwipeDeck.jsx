@@ -34,7 +34,9 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
       <div className="card-body">
         <div className="card-kicker-row">
           <span className="card-kicker">Best match right now</span>
+          {profile.compatibility ? <span className="card-kicker">{profile.compatibility.score}% fit</span> : null}
           {profile.verifiedCourse ? <span className="card-kicker muted">Verified course</span> : null}
+          {profile.verifiedGolfer ? <span className="card-kicker muted">Verified golfer</span> : null}
         </div>
         <div className="card-title-row">
           <div>
@@ -63,7 +65,19 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
           <div className="detail-pill">
             Rating: {profile.reliabilityRating?.toFixed(1) ?? "4.8"} ({profile.completedRounds} rounds)
           </div>
+          <div className="detail-pill">Score focus: {profile.seriousness}</div>
+          <div className="detail-pill">Game: {profile.gameStyle}</div>
         </div>
+
+        {profile.compatibility?.reasons?.length ? (
+          <div className="tag-row">
+            {profile.compatibility.reasons.map((reason) => (
+              <span className="tag verified" key={reason}>
+                {reason}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <div className="tag-row">
           {profile.tags.map((tag) => (

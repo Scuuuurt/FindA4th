@@ -30,6 +30,17 @@ function normalizeUser(nextUser) {
     mobilityPreference: nextUser.mobilityPreference ?? defaultUser.mobilityPreference,
     musicPreference: nextUser.musicPreference ?? defaultUser.musicPreference,
     availabilityWindow: nextUser.availabilityWindow ?? defaultUser.availabilityWindow,
+    seriousness: nextUser.seriousness ?? defaultUser.seriousness,
+    gameStyle: nextUser.gameStyle ?? defaultUser.gameStyle,
+    socialStyle: nextUser.socialStyle ?? defaultUser.socialStyle,
+    beginnerFriendly:
+      typeof nextUser.beginnerFriendly === "boolean"
+        ? nextUser.beginnerFriendly
+        : defaultUser.beginnerFriendly,
+    wouldJoinAnotherGroup:
+      typeof nextUser.wouldJoinAnotherGroup === "boolean"
+        ? nextUser.wouldJoinAnotherGroup
+        : defaultUser.wouldJoinAnotherGroup,
     groupSize:
       nextUser.playMode === "group_owner"
         ? Math.min(4, Math.max(2, toNumber(nextUser.groupSize, defaultUser.groupSize)))
@@ -172,21 +183,26 @@ export default function App() {
     setActiveMessages(messages);
   }
 
-  async function handleSubmitRating(matchId, rating, note) {
-    const updatedMatch = await api.submitRating(matchId, rating, note);
-    if (!updatedMatch) return;
+  async function handleSubmitRating(matchId, payload, note) {
+    const result = await api.submitRating(matchId, payload, note);
+    if (!result) return;
+
+    if (result.matches) {
+      commitSnapshot(result);
+      return;
+    }
 
     setSnapshot((current) => {
       if (!current) return current;
       return {
         ...current,
-        matches: current.matches.map((match) => (match.id === matchId ? updatedMatch : match))
+        matches: current.matches.map((match) => (match.id === matchId ? result : match))
       };
     });
   }
 
-  function handleTrustAction(matchId, action) {
-    api.runTrustAction(matchId, action).then(commitSnapshot);
+  function handleTrustAction(matchId, action, reason) {
+    api.runTrustAction(matchId, action, reason).then(commitSnapshot);
   }
 
   function handleNotificationRead(notificationId) {
@@ -205,8 +221,16 @@ export default function App() {
     api.saveScorecard(roundId, scores).then(commitSnapshot);
   }
 
-  function handleCancelMatch(matchId) {
-    api.cancelMatch(matchId).then(commitSnapshot);
+  function handleCancelMatch(matchId, reason) {
+    api.cancelMatch(matchId, reason).then(commitSnapshot);
+  }
+
+  function handleConfirmationUpdate(matchId, confirmation) {
+    api.updateConfirmation(matchId, confirmation).then(commitSnapshot);
+  }
+
+  function handleCreateInvite(kind) {
+    api.createInvite(kind).then(commitSnapshot);
   }
 
   const activeMatch = snapshot?.matches?.find((match) => match.id === activeMatchId) ?? null;
@@ -250,6 +274,7 @@ export default function App() {
       notifications={snapshot.notifications ?? []}
       courses={snapshot.courses ?? []}
       roundHistory={snapshot.roundHistory ?? []}
+      invites={snapshot.invites ?? []}
       activeMatch={activeMatch}
       activeMessages={activeMessages}
       chatLoading={chatLoading}
@@ -262,6 +287,8 @@ export default function App() {
         onReInvitePartner={handleReInvitePartner}
         onSaveScorecard={handleSaveScorecard}
         onCancelMatch={handleCancelMatch}
+        onConfirmationUpdate={handleConfirmationUpdate}
+        onCreateInvite={handleCreateInvite}
         onTeeTimeUpdate={handleTeeTimeUpdate}
         onSettingsChange={handleUserChange}
       onFilterChange={handleFilterChange}

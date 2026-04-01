@@ -11,6 +11,10 @@ export const availabilityDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 export const availabilityWindows = ["Any time", "Early morning", "Mid-morning", "Afternoon", "Twilight"];
 export const genderOptions = ["Prefer not to say", "Woman", "Man", "Non-binary"];
 export const genderPreferenceOptions = ["Anyone", "Women", "Men", "Non-binary golfers"];
+export const seriousnessOptions = ["Just out for fun", "Competitive but relaxed", "Score matters"];
+export const gameStyleOptions = ["No side game", "Open to a small game", "Love a money match"];
+export const socialPreferenceOptions = ["Talkative", "Balanced", "Quiet round"];
+export const bookingStatusOptions = ["Booked", "Planning to book"];
 
 export const profiles = [
   {
@@ -38,9 +42,16 @@ export const profiles = [
     gender: "Woman",
     availableDays: ["Sat", "Sun"],
     availabilityWindow: "Early morning",
+    seriousness: "Competitive but relaxed",
+    gameStyle: "Open to a small game",
+    socialStyle: "Talkative",
+    beginnerFriendly: true,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 12,
-    reliabilityRating: 4.9
+    reliabilityRating: 4.9,
+    cancellationRate: "Low",
+    noShowCount: 0
   },
   {
     id: 2,
@@ -67,9 +78,16 @@ export const profiles = [
     gender: "Man",
     availableDays: ["Fri", "Sat"],
     availabilityWindow: "Mid-morning",
+    seriousness: "Just out for fun",
+    gameStyle: "Open to a small game",
+    socialStyle: "Talkative",
+    beginnerFriendly: true,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 18,
-    reliabilityRating: 4.8
+    reliabilityRating: 4.8,
+    cancellationRate: "Low",
+    noShowCount: 0
   },
   {
     id: 3,
@@ -96,9 +114,16 @@ export const profiles = [
     gender: "Man",
     availableDays: ["Thu", "Sat", "Sun"],
     availabilityWindow: "Early morning",
+    seriousness: "Score matters",
+    gameStyle: "Love a money match",
+    socialStyle: "Balanced",
+    beginnerFriendly: false,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 26,
-    reliabilityRating: 5
+    reliabilityRating: 5,
+    cancellationRate: "Very low",
+    noShowCount: 0
   },
   {
     id: 4,
@@ -125,9 +150,16 @@ export const profiles = [
     gender: "Man",
     availableDays: ["Sat", "Sun"],
     availabilityWindow: "Early morning",
+    seriousness: "Score matters",
+    gameStyle: "Open to a small game",
+    socialStyle: "Balanced",
+    beginnerFriendly: false,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 9,
-    reliabilityRating: 4.7
+    reliabilityRating: 4.7,
+    cancellationRate: "Low",
+    noShowCount: 1
   },
   {
     id: 5,
@@ -154,9 +186,16 @@ export const profiles = [
     gender: "Man",
     availableDays: ["Wed", "Fri", "Sat"],
     availabilityWindow: "Twilight",
+    seriousness: "Just out for fun",
+    gameStyle: "No side game",
+    socialStyle: "Balanced",
+    beginnerFriendly: true,
     verifiedCourse: true,
+    verifiedGolfer: false,
     completedRounds: 7,
-    reliabilityRating: 4.6
+    reliabilityRating: 4.6,
+    cancellationRate: "Medium",
+    noShowCount: 0
   },
   {
     id: 6,
@@ -183,9 +222,16 @@ export const profiles = [
     gender: "Non-binary",
     availableDays: ["Sun"],
     availabilityWindow: "Mid-morning",
+    seriousness: "Score matters",
+    gameStyle: "Love a money match",
+    socialStyle: "Quiet round",
+    beginnerFriendly: false,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 15,
-    reliabilityRating: 4.9
+    reliabilityRating: 4.9,
+    cancellationRate: "Very low",
+    noShowCount: 0
   },
   {
     id: 7,
@@ -212,9 +258,16 @@ export const profiles = [
     gender: "Man",
     availableDays: ["Fri"],
     availabilityWindow: "Twilight",
+    seriousness: "Competitive but relaxed",
+    gameStyle: "Open to a small game",
+    socialStyle: "Talkative",
+    beginnerFriendly: true,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 11,
-    reliabilityRating: 4.7
+    reliabilityRating: 4.7,
+    cancellationRate: "Low",
+    noShowCount: 0
   },
   {
     id: 8,
@@ -241,9 +294,16 @@ export const profiles = [
     gender: "Woman",
     availableDays: ["Thu", "Fri"],
     availabilityWindow: "Early morning",
+    seriousness: "Competitive but relaxed",
+    gameStyle: "No side game",
+    socialStyle: "Balanced",
+    beginnerFriendly: true,
     verifiedCourse: true,
+    verifiedGolfer: true,
     completedRounds: 20,
-    reliabilityRating: 4.8
+    reliabilityRating: 4.8,
+    cancellationRate: "Low",
+    noShowCount: 0
   }
 ];
 
@@ -260,54 +320,70 @@ export const defaultUser = {
   genderPreference: "Anyone",
   mobilityPreference: "either",
   musicPreference: "either",
+  availabilityWindow: "Any time",
   availableDays: ["Sat", "Sun"],
-  availabilityWindow: "Any time"
+  seriousness: "Competitive but relaxed",
+  gameStyle: "Open to a small game",
+  socialStyle: "Balanced",
+  beginnerFriendly: true,
+  wouldJoinAnotherGroup: true
 };
 
 export const defaultTeeTime = {
-  id: "tt-100",
-  teeDate: "2026-04-04",
-  teeTime: "08:12",
-  dayLabel: "Saturday 8:12 AM",
+  id: "demo-tee-time",
   homeCourse: "Pebble Ridge",
+  teeDate: "2026-04-04",
+  teeTime: "08:24",
+  dayLabel: "Saturday 8:24 AM",
+  holes: 18,
   golfersCommitted: 3,
   openSlots: 1,
   postingType: "group_owner",
-  holes: 18,
-  note: "Early weekend round. Looking for someone easy to pair with and on time."
+  bookingStatus: "Booked",
+  note: "We already have the slot and want one more golfer who keeps pace and is good with a social match.",
+  preferredSkillWindow: "8-18 handicap",
+  roundMobility: "Either",
+  fallbackMode: "Happy to merge with a twosome if it is the right fit",
+  greenFeeRange: "$90-$130",
+  meetingSpot: "Putting green 20 minutes early"
 };
 
 export const previousPartnersSeed = [
   {
     id: "partner-1",
-    profileId: 2,
+    profileId: 3,
     lastPlayed: "Last played 2 weeks ago",
-    chemistry: "Easygoing match",
+    chemistry: "Strong fit for competitive rounds",
+    trustedLabel: "Would absolutely play again",
+    wouldPlayAgain: true,
     availablePosting: {
-      course: "Harbor Dunes",
-      teeTime: "Sun · 7:54 AM",
+      course: "Pebble Ridge",
+      teeTime: "Sat · 8:14 AM",
       openSlots: 1,
-      note: "Need one more walker for an early loop."
+      note: "Looking for a serious early morning match."
     }
   },
   {
     id: "partner-2",
-    profileId: 3,
-    lastPlayed: "Last played in February",
-    chemistry: "Competitive fit",
-    availablePosting: null
+    profileId: 2,
+    lastPlayed: "Last played 1 month ago",
+    chemistry: "Great social energy and on-time group",
+    trustedLabel: "Easy social fit",
+    wouldPlayAgain: true,
+    availablePosting: {
+      course: "Harbor Dunes",
+      teeTime: "Sat · 8:06 AM",
+      openSlots: 1,
+      note: "Visitor group running another weekend round."
+    }
   },
   {
     id: "partner-3",
-    profileId: 4,
-    lastPlayed: "Played together last month",
-    chemistry: "Great pace match",
-    availablePosting: {
-      course: "Pebble Ridge",
-      teeTime: "Sat · 1:18 PM",
-      openSlots: 2,
-      note: "Looking to pair back up for an afternoon game."
-    }
+    profileId: 5,
+    lastPlayed: "Last played 6 weeks ago",
+    chemistry: "Friendly but pace was a little slower",
+    trustedLabel: "Good fit for casual rounds",
+    wouldPlayAgain: true
   }
 ];
 
@@ -318,7 +394,12 @@ export const coursePagesSeed = [
     location: "Westchester County",
     vibe: "Fast greens, strong morning regulars, good walking culture.",
     activePostings: 4,
-    bestFor: "Competitive mornings and serious but social groups"
+    bestFor: "Competitive mornings and serious but social groups",
+    type: "Semi-private",
+    priceTier: "$$$",
+    paceExpectation: "4:05 typical pace",
+    difficulty: "Championship feel",
+    bestTimeWindows: ["Early morning", "Mid-morning"]
   },
   {
     id: "course-2",
@@ -326,7 +407,12 @@ export const coursePagesSeed = [
     location: "Long Island coast",
     vibe: "Windy, fun, and popular with buddy trips and visitors.",
     activePostings: 2,
-    bestFor: "Social rounds and destination golf pairings"
+    bestFor: "Social rounds and destination golf pairings",
+    type: "Resort public",
+    priceTier: "$$$$",
+    paceExpectation: "4:25 with scenic waits",
+    difficulty: "Wind-dependent",
+    bestTimeWindows: ["Mid-morning", "Afternoon"]
   },
   {
     id: "course-3",
@@ -334,7 +420,12 @@ export const coursePagesSeed = [
     location: "North Jersey",
     vibe: "Reliable after-work crowd with a strong twilight scene.",
     activePostings: 3,
-    bestFor: "Quick 9s and twilight foursomes"
+    bestFor: "Quick 9s and twilight foursomes",
+    type: "Daily fee",
+    priceTier: "$$",
+    paceExpectation: "3:45 for 9 holes",
+    difficulty: "Playable for mixed groups",
+    bestTimeWindows: ["Afternoon", "Twilight"]
   }
 ];
 
@@ -380,7 +471,14 @@ export const roundHistorySeed = [
       holes: 9,
       scores: [5, 4, 4, 5, 4, 3, 5, 4, 4],
       total: 38
-    }
+    },
+    confirmation: {
+      walkOrCart: "Walking",
+      greenFee: "$96",
+      meetingSpot: "Putting green",
+      confirmedByBoth: true
+    },
+    playAgainReady: true
   },
   {
     id: "round-2",
@@ -396,6 +494,13 @@ export const roundHistorySeed = [
       holes: 18,
       scores: [5, 4, 6, 4, 5, 3, 5, 5, 4, 4, 5, 4, 4, 5, 3, 5, 5, 4],
       total: 80
-    }
+    },
+    confirmation: {
+      walkOrCart: "Cart",
+      greenFee: "$122",
+      meetingSpot: "Main clubhouse",
+      confirmedByBoth: true
+    },
+    playAgainReady: true
   }
 ];

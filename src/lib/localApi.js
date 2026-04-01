@@ -21,58 +21,6 @@ const state = {
   sessions: new Map()
 };
 
-function filteredDeck(userState) {
-  const swipedIds = new Set(userState.swipes.keys());
-  const blockedIds = userState.blockedProfiles ?? new Set();
-
-  return profiles.filter((profile) => {
-    const distanceMatch = profile.distanceMiles <= userState.user.distance;
-    const handicapMatch =
-      Math.abs(profile.handicapValue - userState.user.handicap) <= userState.user.handicapRange;
-    const vibeMatch =
-      userState.user.preferredVibe === "any" ||
-      (profile.preferredVibe ?? profile.vibe.toLowerCase()) === userState.user.preferredVibe;
-    const genderMatch =
-      (userState.user.genderPreference ?? "Anyone") === "Anyone" ||
-      ((userState.user.genderPreference ?? "Anyone") === "Women" && profile.gender === "Woman") ||
-      ((userState.user.genderPreference ?? "Anyone") === "Men" && profile.gender === "Man") ||
-      ((userState.user.genderPreference ?? "Anyone") === "Non-binary golfers" &&
-        profile.gender === "Non-binary");
-    const mobilityMatch =
-      userState.user.mobilityPreference === "either" ||
-      profile.mobilityPreference === "either" ||
-      profile.mobilityPreference === userState.user.mobilityPreference;
-    const musicMatch =
-      userState.user.musicPreference === "either" ||
-      profile.musicPreference === userState.user.musicPreference;
-    const dayOverlap =
-      !userState.user.availableDays?.length ||
-      profile.availableDays?.some((day) => userState.user.availableDays.includes(day));
-    const availabilityMatch =
-      userState.user.availabilityWindow === "Any time" ||
-      profile.availabilityWindow === userState.user.availabilityWindow;
-
-    if (
-      !distanceMatch ||
-      !handicapMatch ||
-      !vibeMatch ||
-      !genderMatch ||
-      !mobilityMatch ||
-      !musicMatch ||
-      !dayOverlap ||
-      !availabilityMatch ||
-      swipedIds.has(profile.id) ||
-      blockedIds.has(profile.id)
-    ) {
-      return false;
-    }
-    if (userState.filter === "all") return true;
-    if (userState.filter === "single") return profile.type === "Single";
-    if (userState.filter === "group") return profile.type === "Group";
-    return profile.vibe.toLowerCase() === userState.filter;
-  });
-}
-
 function formatDayLabel(teeDate, teeTime) {
   if (!teeDate || !teeTime) return defaultTeeTime.dayLabel;
   const parsed = new Date(`${teeDate}T${teeTime}:00`);
@@ -122,7 +70,16 @@ function normalizeTeeTime(currentTeeTime, user, payload = {}) {
     teeDate,
     teeTime,
     holes: Number(payload.holes ?? currentTeeTime.holes ?? defaultTeeTime.holes),
+    bookingStatus: payload.bookingStatus ?? currentTeeTime.bookingStatus ?? defaultTeeTime.bookingStatus,
     note: payload.note ?? currentTeeTime.note ?? defaultTeeTime.note,
+    preferredSkillWindow:
+      payload.preferredSkillWindow ??
+      currentTeeTime.preferredSkillWindow ??
+      defaultTeeTime.preferredSkillWindow,
+    roundMobility: payload.roundMobility ?? currentTeeTime.roundMobility ?? defaultTeeTime.roundMobility,
+    fallbackMode: payload.fallbackMode ?? currentTeeTime.fallbackMode ?? defaultTeeTime.fallbackMode,
+    greenFeeRange: payload.greenFeeRange ?? currentTeeTime.greenFeeRange ?? defaultTeeTime.greenFeeRange,
+    meetingSpot: payload.meetingSpot ?? currentTeeTime.meetingSpot ?? defaultTeeTime.meetingSpot,
     dayLabel: formatDayLabel(teeDate, teeTime)
   };
 }
@@ -139,8 +96,138 @@ function emptySnapshot() {
     teeTime: clone(defaultTeeTime),
     notifications: [],
     courses: [],
-    roundHistory: []
+    roundHistory: [],
+    invites: []
   };
+}
+
+function compatibilityBreakdown(userState, profile) {
+  const items = [];
+  let score = 48;
+
+  if (profile.homeCourse === userState.teeTime.homeCourse) {
+    score += 16;
+    items.push("Same course");
+  }
+
+  const distanceGap = Math.abs(profile.handicapValue - userState.user.handicap);
+  if (distanceGap <= Math.max(2, userState.user.handicapRange / 2)) {
+    score += 12;
+    items.push("Tight handicap fit");
+  } else if (distanceGap <= userState.user.handicapRange) {
+    score += 6;
+    items.push("Within handicap range");
+  }
+
+  const vibe = userState.user.preferredVibe === "any" || profile.preferredVibe === userState.user.preferredVibe;
+  if (vibe) {
+    score += 8;
+    items.push("Preferred round vibe");
+  }
+
+  const dayOverlap = profile.availableDays?.some((day) => userState.user.availableDays.includes(day));
+  if (dayOverlap) {
+    score += 6;
+    items.push("Availability overlap");
+  }
+
+  if (
+    userState.user.mobilityPreference === "either" ||
+    profile.mobilityPreference === "either" ||
+    profile.mobilityPreference === userState.user.mobilityPreference
+  ) {
+    score += 4;
+    items.push("Walk/cart match");
+  }
+
+  if (
+    userState.user.musicPreference === "either" ||
+    profile.musicPreference === userState.user.musicPreference
+  ) {
+    score += 3;
+    items.push("Music preference");
+  }
+
+  if (profile.socialStyle === userState.user.socialStyle) {
+    score += 4;
+    items.push("Conversation style");
+  }
+
+  if (profile.gameStyle === userState.user.gameStyle) {
+    score += 4;
+    items.push("Side game fit");
+  }
+
+  if (profile.beginnerFriendly && userState.user.beginnerFriendly) {
+    score += 3;
+    items.push("Beginner-friendly");
+  }
+
+  if (profile.verifiedGolfer) {
+    score += 2;
+  }
+
+  return {
+    score: Math.max(58, Math.min(98, score)),
+    reasons: items.slice(0, 4)
+  };
+}
+
+function filteredDeck(userState) {
+  const swipedIds = new Set(userState.swipes.keys());
+  const blockedIds = userState.blockedProfiles ?? new Set();
+
+  return profiles
+    .filter((profile) => {
+      const distanceMatch = profile.distanceMiles <= userState.user.distance;
+      const handicapMatch =
+        Math.abs(profile.handicapValue - userState.user.handicap) <= userState.user.handicapRange;
+      const vibeMatch =
+        userState.user.preferredVibe === "any" ||
+        (profile.preferredVibe ?? profile.vibe.toLowerCase()) === userState.user.preferredVibe;
+      const genderMatch =
+        userState.user.genderPreference === "Anyone" ||
+        (userState.user.genderPreference === "Women" && profile.gender === "Woman") ||
+        (userState.user.genderPreference === "Men" && profile.gender === "Man") ||
+        (userState.user.genderPreference === "Non-binary golfers" && profile.gender === "Non-binary");
+      const mobilityMatch =
+        userState.user.mobilityPreference === "either" ||
+        profile.mobilityPreference === "either" ||
+        profile.mobilityPreference === userState.user.mobilityPreference;
+      const musicMatch =
+        userState.user.musicPreference === "either" || profile.musicPreference === userState.user.musicPreference;
+      const dayOverlap =
+        !userState.user.availableDays?.length ||
+        profile.availableDays?.some((day) => userState.user.availableDays.includes(day));
+      const availabilityMatch =
+        userState.user.availabilityWindow === "Any time" ||
+        profile.availabilityWindow === userState.user.availabilityWindow;
+
+      if (
+        !distanceMatch ||
+        !handicapMatch ||
+        !vibeMatch ||
+        !genderMatch ||
+        !mobilityMatch ||
+        !musicMatch ||
+        !dayOverlap ||
+        !availabilityMatch ||
+        swipedIds.has(profile.id) ||
+        blockedIds.has(profile.id)
+      ) {
+        return false;
+      }
+
+      if (userState.filter === "all") return true;
+      if (userState.filter === "single") return profile.type === "Single";
+      if (userState.filter === "group") return profile.type === "Group";
+      return profile.vibe.toLowerCase() === userState.filter;
+    })
+    .map((profile) => ({
+      ...profile,
+      compatibility: compatibilityBreakdown(userState, profile)
+    }))
+    .sort((left, right) => right.compatibility.score - left.compatibility.score);
 }
 
 function trustSummary(userState, profileId, matchId) {
@@ -151,7 +238,8 @@ function trustSummary(userState, profileId, matchId) {
   return {
     blocked: (userState.blockedProfiles ?? new Set()).has(profileId),
     reported: events.some((event) => event.action === "report"),
-    noShow: events.some((event) => event.action === "no_show")
+    noShow: events.some((event) => event.action === "no_show"),
+    cancellations: events.filter((event) => event.action === "cancel").length
   };
 }
 
@@ -159,13 +247,13 @@ function buildPreviousPartners(userState) {
   const seeded = previousPartnersSeed
     .map((entry) => {
       const profile = profiles.find((profile) => profile.id === entry.profileId);
+      const isFavorite = userState.favorites?.has(entry.profileId) ?? false;
       return profile
         ? {
-            id: entry.id,
+            ...entry,
             profile,
-            lastPlayed: entry.lastPlayed,
-            chemistry: entry.chemistry,
-            availablePosting: entry.availablePosting
+            isFavorite,
+            trusted: entry.wouldPlayAgain || isFavorite
           }
         : null;
     })
@@ -181,11 +269,18 @@ function buildPreviousPartners(userState) {
       ) {
         return null;
       }
+
+      const isFavorite = userState.favorites?.has(entry.profileId) ?? false;
+
       return {
         id: `previous-${entry.profileId}`,
         profile,
         lastPlayed: "Played together recently",
         chemistry: "Saved from a completed FindA4th round",
+        trustedLabel: isFavorite ? "Saved as a favorite" : "Would likely play again",
+        wouldPlayAgain: true,
+        isFavorite,
+        trusted: true,
         availablePosting: {
           course: profile.course,
           teeTime: profile.teeTime,
@@ -197,6 +292,10 @@ function buildPreviousPartners(userState) {
     .filter(Boolean);
 
   return [...seeded, ...derived];
+}
+
+function buildInvites(userState) {
+  return clone(userState.invites ?? []);
 }
 
 function snapshotForToken(token) {
@@ -215,11 +314,19 @@ function snapshotForToken(token) {
       .map((entry) => {
         const profile = profiles.find((profile) => profile.id === entry.profileId);
         if (!profile || (userState.blockedProfiles ?? new Set()).has(entry.profileId)) return null;
-        const ratings = entry.ratings ?? { average: null, count: 0, userRating: null, host: null, guest: null };
+
         return {
           id: entry.id,
           profile,
-          ratings,
+          status: entry.status ?? "matched",
+          ratings: entry.ratings ?? {
+            average: null,
+            count: 0,
+            userRating: null,
+            categories: null,
+            wouldPlayAgain: null
+          },
+          confirmation: clone(entry.confirmation ?? null),
           trust: trustSummary(userState, entry.profileId, entry.id)
         };
       })
@@ -228,7 +335,8 @@ function snapshotForToken(token) {
     teeTime: clone(userState.teeTime),
     notifications: clone(userState.notifications),
     courses: clone(userState.courses),
-    roundHistory: clone(userState.roundHistory)
+    roundHistory: clone(userState.roundHistory),
+    invites: buildInvites(userState)
   };
 }
 
@@ -242,6 +350,18 @@ function normalizeCredentials(credentials) {
   return {
     email: credentials.email.trim().toLowerCase(),
     password: credentials.password
+  };
+}
+
+function defaultConfirmation(teeTime) {
+  return {
+    teeTime: teeTime.dayLabel,
+    course: teeTime.homeCourse,
+    bookingStatus: teeTime.bookingStatus,
+    walkOrCart: teeTime.roundMobility,
+    greenFee: teeTime.greenFeeRange,
+    meetingSpot: teeTime.meetingSpot,
+    confirmedByBoth: false
   };
 }
 
@@ -278,6 +398,15 @@ export const localApi = {
       courses: clone(coursePagesSeed),
       roundHistory: clone(roundHistorySeed),
       favorites: new Set(),
+      invites: [
+        {
+          id: "invite-1",
+          type: "Private round link",
+          destination: "Share with the exact golfer or group you want",
+          status: "Ready",
+          value: "finda4th.app/demo/invite/sat824"
+        }
+      ],
       user: { ...clone(defaultUser), email: next.email },
       teeTime: { ...buildTeeTime({ ...clone(defaultUser), email: next.email }), id: createToken() }
     });
@@ -352,19 +481,20 @@ export const localApi = {
         id: matchId,
         profileId: topProfile.id,
         status: "matched",
+        confirmation: defaultConfirmation(userState.teeTime),
         ratings: {
           average: null,
           count: 0,
           userRating: null,
-          host: null,
-          guest: null
+          categories: null,
+          wouldPlayAgain: null
         }
       });
       userState.messageThreads.set(matchId, [
         {
           id: createToken(),
           sender: topProfile.name,
-          text: `Looks like a fit for ${topProfile.teeTime}. Want to meet by the putting green 20 minutes early?`,
+          text: `Looks like a fit for ${topProfile.teeTime}. Want to confirm carts, green fee, and meet by the putting green 20 minutes early?`,
           sentAt: new Date().toISOString()
         }
       ]);
@@ -398,31 +528,78 @@ export const localApi = {
     return Promise.resolve(clone(thread));
   },
 
-  submitRating(matchId, rating, note) {
+  submitRating(matchId, payload, legacyNote) {
     const userState = requireUser(this.token);
     const target = userState.matches.find((match) => match.id === matchId);
     if (!target) return Promise.reject(new Error("Match not found"));
 
+    const normalized =
+      typeof payload === "number"
+        ? {
+            overall: Number(payload),
+            note: legacyNote?.trim() ?? "",
+            categories: {
+              pace: Number(payload),
+              friendliness: Number(payload),
+              reliability: Number(payload),
+              etiquette: Number(payload)
+            },
+            wouldPlayAgain: true
+          }
+        : {
+            overall: Number(payload.overall),
+            note: payload.note?.trim() ?? "",
+            categories: clone(payload.categories),
+            wouldPlayAgain: Boolean(payload.wouldPlayAgain)
+          };
+
     target.ratings = {
-      average: Number(rating),
+      average: normalized.overall,
       count: 1,
       userRating: {
-        rating: Number(rating),
-        note: note?.trim() ?? "",
+        rating: normalized.overall,
+        note: normalized.note,
         raterRole: "host"
       },
-      host: {
-        rating: Number(rating),
-        note: note?.trim() ?? "",
-        raterRole: "host"
-      },
-      guest: null
+      categories: normalized.categories,
+      wouldPlayAgain: normalized.wouldPlayAgain
     };
 
-    return Promise.resolve(clone(target));
+    const profile = profiles.find((entry) => entry.id === target.profileId);
+    userState.roundHistory.unshift({
+      id: createToken(),
+      matchId,
+      title: `${userState.teeTime.homeCourse} FindA4th Round`,
+      course: userState.teeTime.homeCourse,
+      dateLabel: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
+        new Date()
+      ),
+      partnerName: profile?.name ?? "Matched golfer",
+      result: "Played",
+      rating: normalized.overall,
+      note: normalized.note || "Round rated and saved from the match workspace.",
+      scorecard: {
+        holes: userState.teeTime.holes,
+        scores: Array.from({ length: userState.teeTime.holes }, () => 4),
+        total: userState.teeTime.holes === 18 ? 72 : 36
+      },
+      confirmation: clone(target.confirmation ?? defaultConfirmation(userState.teeTime)),
+      playAgainReady: normalized.wouldPlayAgain
+    });
+
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Round added to history",
+      body: "Your rating and round details were saved to your golf log.",
+      timeLabel: "Just now",
+      type: "rating",
+      unread: true
+    });
+
+    return Promise.resolve(snapshotForToken(this.token));
   },
 
-  runTrustAction(matchId, action) {
+  runTrustAction(matchId, action, reason = "") {
     const userState = requireUser(this.token);
     const target = userState.matches.find((match) => match.id === matchId);
     if (!target) return Promise.reject(new Error("Match not found"));
@@ -439,9 +616,41 @@ export const localApi = {
       matchId,
       profileId: target.profileId,
       action,
+      reason,
       createdAt: new Date().toISOString()
     });
 
+    userState.notifications.unshift({
+      id: createToken(),
+      title: action === "cancel" ? "Cancellation logged" : "Trust action recorded",
+      body:
+        action === "cancel"
+          ? `Cancellation reason saved${reason ? `: ${reason}` : "."}`
+          : "The trust center was updated for this round.",
+      timeLabel: "Just now",
+      type: "trust",
+      unread: true
+    });
+
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  updateConfirmation(matchId, confirmation) {
+    const userState = requireUser(this.token);
+    const target = userState.matches.find((match) => match.id === matchId);
+    if (!target) return Promise.reject(new Error("Match not found"));
+    target.confirmation = {
+      ...(target.confirmation ?? defaultConfirmation(userState.teeTime)),
+      ...clone(confirmation)
+    };
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Round confirmation updated",
+      body: "The match now has a clearer tee-time plan for both sides.",
+      timeLabel: "Just now",
+      type: "match",
+      unread: true
+    });
     return Promise.resolve(snapshotForToken(this.token));
   },
 
@@ -469,12 +678,22 @@ export const localApi = {
 
   reInvitePartner(profileId) {
     const userState = requireUser(this.token);
-    const profile = profiles.find((entry) => entry.id === profileId);
-    if (!profile) return Promise.resolve(snapshotForToken(this.token));
+    const profile =
+      profiles.find((entry) => entry.id === profileId) ??
+      profiles.find((entry) => entry.name === profileId);
+    const partnerName = profile?.name ?? profileId;
+
+    userState.invites.unshift({
+      id: createToken(),
+      type: "Play-again invite",
+      destination: partnerName,
+      status: "Sent",
+      value: `Invite for ${userState.teeTime.homeCourse} on ${userState.teeTime.dayLabel}`
+    });
     userState.notifications.unshift({
       id: createToken(),
       title: "Re-invite sent",
-      body: `A demo re-invite was sent to ${profile.name} for your next round.`,
+      body: `A demo re-invite was sent to ${partnerName} for your next round.`,
       timeLabel: "Just now",
       type: "invite",
       unread: true
@@ -507,17 +726,56 @@ export const localApi = {
     return Promise.resolve(snapshotForToken(this.token));
   },
 
-  cancelMatch(matchId) {
+  cancelMatch(matchId, reason = "No reason selected") {
     const userState = requireUser(this.token);
     const target = userState.matches.find((match) => match.id === matchId);
     if (!target) return Promise.reject(new Error("Match not found"));
     userState.matches = userState.matches.filter((match) => match.id !== matchId);
+    userState.trustEvents.push({
+      id: createToken(),
+      matchId,
+      profileId: target.profileId,
+      action: "cancel",
+      reason,
+      createdAt: new Date().toISOString()
+    });
     userState.notifications.unshift({
       id: createToken(),
       title: "Match cancelled",
-      body: "This tee time pairing was cancelled in the demo flow.",
+      body: `This tee time pairing was cancelled in the demo flow${reason ? `: ${reason}` : "."}`,
       timeLabel: "Just now",
       type: "trust",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  createInvite(kind) {
+    const userState = requireUser(this.token);
+    const invite = {
+      id: createToken(),
+      type:
+        kind === "friend"
+          ? "Invite a friend"
+          : kind === "share"
+            ? "Share posting"
+            : "Private round link",
+      destination:
+        kind === "friend"
+          ? "Text this to a golf buddy"
+          : kind === "share"
+            ? "Post this listing externally"
+            : "Direct invite to one golfer or group",
+      status: "Ready",
+      value: `finda4th.app/demo/${kind}/${userState.teeTime.homeCourse.toLowerCase().replace(/\s+/g, "-")}`
+    };
+    userState.invites.unshift(invite);
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Invite created",
+      body: `${invite.type} is ready to share from this tee-time post.`,
+      timeLabel: "Just now",
+      type: "invite",
       unread: true
     });
     return Promise.resolve(snapshotForToken(this.token));

@@ -111,11 +111,14 @@ const httpApi = {
       body: JSON.stringify({ rating, note })
     });
   },
-  runTrustAction(matchId, action) {
+  runTrustAction(matchId, action, reason) {
     return request(`/api/matches/${matchId}/trust`, {
       method: "POST",
-      body: JSON.stringify({ action })
+      body: JSON.stringify({ action, reason })
     });
+  },
+  updateConfirmation(matchId, confirmation) {
+    return localApi.updateConfirmation(matchId, confirmation);
   },
   markNotificationRead(notificationId) {
     return localApi.markNotificationRead(notificationId);
@@ -129,8 +132,11 @@ const httpApi = {
   saveScorecard(roundId, scores) {
     return localApi.saveScorecard(roundId, scores);
   },
-  cancelMatch(matchId) {
-    return localApi.cancelMatch(matchId);
+  cancelMatch(matchId, reason) {
+    return localApi.cancelMatch(matchId, reason);
+  },
+  createInvite(kind) {
+    return localApi.createInvite(kind);
   }
 };
 

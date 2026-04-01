@@ -3,6 +3,9 @@ import {
   availabilityWindows,
   genderOptions,
   genderPreferenceOptions,
+  gameStyleOptions,
+  seriousnessOptions,
+  socialPreferenceOptions,
   verifiedCourses
 } from "../data/profiles";
 
@@ -94,6 +97,7 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
             <span>Verified home course</span>
             <span>Preference filters</span>
             <span>Availability calendar</span>
+            <span>Match quality questions</span>
           </div>
 
           <form className="profile-form onboarding-form" onSubmit={onSubmit}>
@@ -210,6 +214,39 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
             </label>
 
             <label>
+              How serious are you about score
+              <select name="seriousness" value={draft.seriousness} onChange={onChange}>
+                {seriousnessOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Side game preference
+              <select name="gameStyle" value={draft.gameStyle} onChange={onChange}>
+                {gameStyleOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Conversation style
+              <select name="socialStyle" value={draft.socialStyle} onChange={onChange}>
+                {socialPreferenceOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
               Gender
               <select name="gender" value={draft.gender} onChange={onChange}>
                 {genderOptions.map((option) => (
@@ -246,6 +283,38 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
                 <option value="either">Either is fine</option>
                 <option value="no_music">Prefer no music</option>
                 <option value="music_okay">Music is okay</option>
+              </select>
+            </label>
+
+            <label>
+              Beginner-friendly rounds
+              <select
+                name="beginnerFriendly"
+                value={draft.beginnerFriendly ? "yes" : "no"}
+                onChange={(event) =>
+                  onChange({
+                    target: { name: "beginnerFriendly", value: event.target.value === "yes" }
+                  })
+                }
+              >
+                <option value="yes">Yes, I am open to mixed skill groups</option>
+                <option value="no">Prefer golfers near my level</option>
+              </select>
+            </label>
+
+            <label>
+              If a perfect fourth is not there
+              <select
+                name="wouldJoinAnotherGroup"
+                value={draft.wouldJoinAnotherGroup ? "yes" : "no"}
+                onChange={(event) =>
+                  onChange({
+                    target: { name: "wouldJoinAnotherGroup", value: event.target.value === "yes" }
+                  })
+                }
+              >
+                <option value="yes">I would merge with another group if the fit is right</option>
+                <option value="no">Only show direct fits for my posting</option>
               </select>
             </label>
 
