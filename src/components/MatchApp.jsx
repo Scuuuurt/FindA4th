@@ -1053,7 +1053,7 @@ export default function MatchApp({
 
   return (
     <div className="app-shell">
-      <section className="hero-panel">
+      <section className="hero-panel hero-panel-redesign">
         <div className="hero-ribbon">
           <span className="hero-ribbon-mark"></span>
           Private matchmaker for incomplete tee times
@@ -1107,6 +1107,20 @@ export default function MatchApp({
           </article>
         </div>
 
+        <section className="hero-showcase">
+          <article className="hero-showcase-card hero-showcase-primary">
+            <p className="topbar-label">Today&apos;s round</p>
+            <strong>{teeTime.homeCourse}</strong>
+            <span>{teeTime.dayLabel}</span>
+            <em>{teeTime.bookingStatus} · {teeTime.greenFeeRange}</em>
+          </article>
+          <article className="hero-showcase-card">
+            <p className="topbar-label">Best-fit signal</p>
+            <strong>{deck[0]?.compatibility?.score ?? 0}% match</strong>
+            <span>{deck[0]?.name ?? "Waiting on the next golfer"}</span>
+          </article>
+        </section>
+
         {featuredCourse ? (
           <section className="featured-course-card">
             <p className="topbar-label">Featured course</p>
@@ -1123,7 +1137,7 @@ export default function MatchApp({
 
       <main className="phone-frame">
         <div className="phone-glow"></div>
-        <section className="app-card">
+        <section className="app-card app-card-redesign">
           <header className="topbar">
             <div>
               <p className="topbar-label">FindA4th</p>
@@ -1140,9 +1154,13 @@ export default function MatchApp({
             </div>
           </header>
 
-          <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
-          <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
-          <InvitePanel invites={invites} onCreateInvite={onCreateInvite} />
+          <section className="intro-grid">
+            <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
+            <div className="intro-sidecar">
+              <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
+              <InvitePanel invites={invites} onCreateInvite={onCreateInvite} />
+            </div>
+          </section>
 
           <section className="view-tabs" aria-label="Primary app views">
             {[
