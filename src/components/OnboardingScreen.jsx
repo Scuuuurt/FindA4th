@@ -5,9 +5,9 @@ import {
   genderPreferenceOptions,
   gameStyleOptions,
   seriousnessOptions,
-  socialPreferenceOptions,
-  verifiedCourses
+  socialPreferenceOptions
 } from "../data/profiles";
+import CourseSearchField from "./CourseSearchField";
 
 function DayPicker({ value, onChange }) {
   function toggleDay(day) {
@@ -147,17 +147,14 @@ export default function OnboardingScreen({ draft, onChange, onSubmit }) {
               </label>
             ) : null}
 
-            <label>
-              Most played course
-              <select name="homeCourse" value={draft.homeCourse} onChange={onChange}>
-                <option value="">Select a verified course</option>
-                {verifiedCourses.map((course) => (
-                  <option key={course} value={course}>
-                    {course}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <CourseSearchField
+              label="Most Played / Home Course"
+              name="homeCourse"
+              value={draft.homeCourse}
+              onChange={onChange}
+              placeholder="Search for your most played course"
+              helperText="Search the demo course list or type your own home course."
+            />
 
             <label>
               Your handicap

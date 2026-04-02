@@ -612,6 +612,62 @@ input[type="range"] {
   color: var(--ink-soft);
 }
 
+.course-search-field {
+  position: relative;
+}
+
+.course-search-shell {
+  position: relative;
+}
+
+.course-search-menu {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 22px;
+  border: 1px solid rgba(16, 34, 23, 0.1);
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 20px 34px rgba(19, 33, 22, 0.12);
+  backdrop-filter: blur(20px);
+}
+
+.course-search-option {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(19, 33, 22, 0.04);
+  color: var(--ink);
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.course-search-option:hover,
+.course-search-option.active {
+  background: rgba(45, 125, 83, 0.1);
+  transform: translateY(-1px);
+}
+
+.course-search-option.custom {
+  background: rgba(190, 160, 110, 0.14);
+}
+
+.course-search-option strong {
+  font-size: 0.95rem;
+}
+
+.course-search-option span,
+.course-search-helper {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .profile-span-2 {
   grid-column: 1 / -1;
 }

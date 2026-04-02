@@ -7,9 +7,9 @@ import {
   genderOptions,
   genderPreferenceOptions,
   seriousnessOptions,
-  socialPreferenceOptions,
-  verifiedCourses
+  socialPreferenceOptions
 } from "../data/profiles";
+import CourseSearchField from "./CourseSearchField";
 import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
@@ -157,17 +157,14 @@ function SettingsPanel({ user, onChange }) {
           </div>
         </label>
 
-        <label>
-          Most played course
-          <select name="homeCourse" value={user.homeCourse} onChange={onChange}>
-            <option value="">Select a verified course</option>
-            {verifiedCourses.map((course) => (
-              <option key={course} value={course}>
-                {course}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CourseSearchField
+          label="Most Played / Home Course"
+          name="homeCourse"
+          value={user.homeCourse}
+          onChange={onChange}
+          placeholder="Search for your most played course"
+          helperText="Search nearby demo inventory or type your own home course."
+        />
 
         {user.playMode === "group_owner" ? (
           <label>
@@ -374,17 +371,14 @@ function TeeTimePostingPanel({ teeTime, user, onSave }) {
       </p>
 
       <form className="profile-form" onSubmit={handleSubmit}>
-        <label>
-          Course
-          <select name="homeCourse" value={draft.homeCourse} onChange={handleChange}>
-            <option value="">Select a verified course</option>
-            {verifiedCourses.map((course) => (
-              <option key={course} value={course}>
-                {course}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CourseSearchField
+          label="Tee time course"
+          name="homeCourse"
+          value={draft.homeCourse}
+          onChange={handleChange}
+          placeholder="Search for the course for this round"
+          helperText="Pick a searchable course for this posting or type a custom course name."
+        />
         <label>
           Booking status
           <select name="bookingStatus" value={draft.bookingStatus} onChange={handleChange}>
