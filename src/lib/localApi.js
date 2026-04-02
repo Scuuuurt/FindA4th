@@ -253,7 +253,8 @@ function buildPreviousPartners(userState) {
             ...entry,
             profile,
             isFavorite,
-            trusted: entry.wouldPlayAgain || isFavorite
+            trusted: entry.wouldPlayAgain || isFavorite,
+            trustProfile: buildTrustProfile(userState, profile)
           }
         : null;
     })
@@ -281,6 +282,7 @@ function buildPreviousPartners(userState) {
         wouldPlayAgain: true,
         isFavorite,
         trusted: true,
+        trustProfile: buildTrustProfile(userState, profile),
         availablePosting: {
           course: profile.course,
           teeTime: profile.teeTime,
@@ -296,6 +298,59 @@ function buildPreviousPartners(userState) {
 
 function buildInvites(userState) {
   return clone(userState.invites ?? []);
+}
+
+function buildTrustProfile(userState, profile) {
+  const rounds = (userState.roundHistory ?? []).filter(
+    (round) => round.partnerId === profile.id || round.partnerName === profile.name
+  );
+  const trustEvents = (userState.trustEvents ?? []).filter((event) => event.profileId === profile.id);
+  const wouldPlayAgainCount = rounds.filter((round) => round.playAgainReady).length;
+  const totals = rounds.reduce(
+    (accumulator, round) => {
+      const breakdown = round.ratingBreakdown ?? {};
+      return {
+        pace: accumulator.pace + (breakdown.pace ?? 0),
+        friendliness: accumulator.friendliness + (breakdown.friendliness ?? 0),
+        reliability: accumulator.reliability + (breakdown.reliability ?? 0),
+        etiquette: accumulator.etiquette + (breakdown.etiquette ?? 0)
+      };
+    },
+    { pace: 0, friendliness: 0, reliability: 0, etiquette: 0 }
+  );
+  const count = rounds.length || 1;
+
+  return {
+    overall:
+      rounds.length > 0
+        ? Number((rounds.reduce((sum, round) => sum + (round.rating ?? 0), 0) / rounds.length).toFixed(1))
+        : Number(profile.reliabilityRating?.toFixed(1) ?? 4.8),
+    completedRounds: profile.completedRounds + rounds.length,
+    wouldPlayAgainRate: rounds.length ? Math.round((wouldPlayAgainCount / rounds.length) * 100) : 100,
+    pace: rounds.length ? Number((totals.pace / count).toFixed(1)) : 4.8,
+    friendliness: rounds.length ? Number((totals.friendliness / count).toFixed(1)) : 4.9,
+    reliability: rounds.length ? Number((totals.reliability / count).toFixed(1)) : profile.reliabilityRating,
+    etiquette: rounds.length ? Number((totals.etiquette / count).toFixed(1)) : 4.8,
+    cancellations: trustEvents.filter((event) => event.action === "cancel").length,
+    noShows: trustEvents.filter((event) => event.action === "no_show").length,
+    lastRoundLabel: rounds[0]?.dateLabel ?? "No completed round yet"
+  };
+}
+
+function buildLifecycle(match) {
+  if (match.status === "completed") {
+    return { step: "completed", label: "Round completed", detail: "Rated and saved to history" };
+  }
+
+  if (match.status === "played") {
+    return { step: "played", label: "Round played", detail: "Waiting on post-round rating" };
+  }
+
+  if (match.confirmation?.confirmedByBoth) {
+    return { step: "confirmed", label: "Confirmed", detail: "Round details locked in" };
+  }
+
+  return { step: "matched", label: "Needs confirmation", detail: "Confirm tee time details together" };
 }
 
 function snapshotForToken(token) {
@@ -319,6 +374,7 @@ function snapshotForToken(token) {
           id: entry.id,
           profile,
           status: entry.status ?? "matched",
+          lifecycle: buildLifecycle(entry),
           ratings: entry.ratings ?? {
             average: null,
             count: 0,
@@ -327,7 +383,8 @@ function snapshotForToken(token) {
             wouldPlayAgain: null
           },
           confirmation: clone(entry.confirmation ?? null),
-          trust: trustSummary(userState, entry.profileId, entry.id)
+          trust: trustSummary(userState, entry.profileId, entry.id),
+          trustProfile: buildTrustProfile(userState, profile)
         };
       })
       .filter(Boolean),
@@ -524,8 +581,37 @@ export const localApi = {
       text: text.trim(),
       sentAt: new Date().toISOString()
     });
+    const target = userState.matches.find((match) => match.id === matchId);
+    const profile = profiles.find((entry) => entry.id === target?.profileId);
+    if (profile) {
+      thread.push({
+        id: createToken(),
+        sender: profile.name,
+        text:
+          target?.confirmation?.confirmedByBoth
+            ? `Perfect. I am locked in for ${target.confirmation.teeTime} and will see you at ${target.confirmation.meetingSpot}.`
+            : "Sounds good on my side. Send the final green fee and meeting spot and I can confirm right away.",
+        sentAt: new Date(Date.now() + 60000).toISOString()
+      });
+    }
     userState.messageThreads.set(matchId, thread);
     return Promise.resolve(clone(thread));
+  },
+
+  completeRound(matchId) {
+    const userState = requireUser(this.token);
+    const target = userState.matches.find((match) => match.id === matchId);
+    if (!target) return Promise.reject(new Error("Match not found"));
+    target.status = "played";
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Round marked as played",
+      body: "You can now leave ratings and save the round to history.",
+      timeLabel: "Just now",
+      type: "round",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
   },
 
   submitRating(matchId, payload, legacyNote) {
@@ -564,6 +650,7 @@ export const localApi = {
       categories: normalized.categories,
       wouldPlayAgain: normalized.wouldPlayAgain
     };
+    target.status = "completed";
 
     const profile = profiles.find((entry) => entry.id === target.profileId);
     userState.roundHistory.unshift({
@@ -574,9 +661,11 @@ export const localApi = {
       dateLabel: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
         new Date()
       ),
+      partnerId: profile?.id ?? null,
       partnerName: profile?.name ?? "Matched golfer",
       result: "Played",
       rating: normalized.overall,
+      ratingBreakdown: normalized.categories,
       note: normalized.note || "Round rated and saved from the match workspace.",
       scorecard: {
         holes: userState.teeTime.holes,
@@ -643,6 +732,9 @@ export const localApi = {
       ...(target.confirmation ?? defaultConfirmation(userState.teeTime)),
       ...clone(confirmation)
     };
+    if (target.confirmation.confirmedByBoth) {
+      target.status = "confirmed";
+    }
     userState.notifications.unshift({
       id: createToken(),
       title: "Round confirmation updated",
@@ -694,6 +786,31 @@ export const localApi = {
       id: createToken(),
       title: "Re-invite sent",
       body: `A demo re-invite was sent to ${partnerName} for your next round.`,
+      timeLabel: "Just now",
+      type: "invite",
+      unread: true
+    });
+    return Promise.resolve(snapshotForToken(this.token));
+  },
+
+  rebookRound(source) {
+    const userState = requireUser(this.token);
+    const profile =
+      profiles.find((entry) => entry.id === source) ??
+      profiles.find((entry) => entry.name === source);
+    const partnerName = profile?.name ?? source;
+
+    userState.invites.unshift({
+      id: createToken(),
+      type: "Rebooked round",
+      destination: partnerName,
+      status: "Drafted",
+      value: `${userState.teeTime.homeCourse} · next ${userState.user.availabilityWindow.toLowerCase()}`
+    });
+    userState.notifications.unshift({
+      id: createToken(),
+      title: "Rebook flow started",
+      body: `${partnerName} was added to a fresh tee-time draft for the next round.`,
       timeLabel: "Just now",
       type: "invite",
       unread: true

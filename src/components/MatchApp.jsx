@@ -478,6 +478,25 @@ function DemoSpotlight({ teeTime, deck, matches, notifications, invites }) {
   );
 }
 
+function DiscoveryContextPanel({ teeTime, user }) {
+  return (
+    <section className="discovery-context-panel">
+      <div>
+        <p className="topbar-label">Matching against</p>
+        <h3>{teeTime.homeCourse}</h3>
+        <p className="posting-lead">
+          {teeTime.dayLabel} · {teeTime.holes} holes · {teeTime.bookingStatus} · {teeTime.roundMobility}
+        </p>
+      </div>
+      <div className="summary-accent-row">
+        <span className="summary-chip">{teeTime.preferredSkillWindow}</span>
+        <span className="summary-chip">Meet: {teeTime.meetingSpot}</span>
+        <span className="summary-chip">{user.seriousness}</span>
+      </div>
+    </section>
+  );
+}
+
 function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
   return (
     <section className="match-panel">
@@ -501,7 +520,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
                   {match.profile.slots > 1 ? "s" : ""}
                 </p>
                 <p className="match-meta">
-                  {match.confirmation?.confirmedByBoth ? "Round confirmed" : "Needs round confirmation"}
+                  {match.lifecycle?.label ?? "Needs round confirmation"}
                 </p>
               </div>
               <div className="match-cta-group">
@@ -531,7 +550,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
   );
 }
 
-function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner }) {
+function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner, onRebookRound }) {
   return (
     <section className="history-panel">
       <div className="panel-header">
@@ -571,6 +590,9 @@ function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner }) {
                   Play again
                 </button>
               ) : null}
+              <button className="ghost-button compact" type="button" onClick={() => onRebookRound(round.partnerName)}>
+                Rebook round
+              </button>
             </div>
           </article>
         ))}
@@ -615,7 +637,7 @@ function CoursePagesPanel({ courses }) {
   );
 }
 
-function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvitePartner }) {
+function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvitePartner, onRebookRound }) {
   return (
     <section className="partners-panel">
       <div className="match-panel-header">
@@ -641,6 +663,13 @@ function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvite
                   {entry.isFavorite ? <span className="tag">Favorite</span> : null}
                   {entry.trustedLabel ? <span className="tag">{entry.trustedLabel}</span> : null}
                 </div>
+                {entry.trustProfile ? (
+                  <div className="history-meta-row">
+                    <span>{entry.trustProfile.overall} overall</span>
+                    <span>{entry.trustProfile.wouldPlayAgainRate}% would play again</span>
+                    <span>{entry.trustProfile.lastRoundLabel}</span>
+                  </div>
+                ) : null}
                 {entry.availablePosting ? (
                   <div className="partner-posting">
                     <strong>
@@ -661,6 +690,9 @@ function PreviousPartnersPanel({ previousPartners, onFavoritePartner, onReInvite
                 </button>
                 <button className="match-action" type="button" onClick={() => onReInvitePartner(entry.profile.id)}>
                   Re-invite
+                </button>
+                <button className="ghost-button compact" type="button" onClick={() => onRebookRound(entry.profile.id)}>
+                  Rebook
                 </button>
               </div>
             </article>
@@ -732,7 +764,9 @@ function MatchWorkspace({
   onSendMessage,
   onSubmitRating,
   onTrustAction,
-  onConfirmationUpdate
+  onConfirmationUpdate,
+  onCompleteRound,
+  onRebookRound
 }) {
   const [draftMessage, setDraftMessage] = useState("");
   const [cancelReason, setCancelReason] = useState(CANCEL_REASONS[0]);
@@ -806,22 +840,44 @@ function MatchWorkspace({
             {activeMatch.profile.course} · {activeMatch.profile.teeTime}
           </p>
         </div>
-        <div className="chat-pill">{activeMatch.confirmation?.confirmedByBoth ? "Confirmed" : "Needs confirmation"}</div>
+        <div className="chat-pill">{activeMatch.lifecycle?.label ?? "Needs confirmation"}</div>
+      </div>
+
+      <div className="lifecycle-strip">
+        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "matched" ? "active" : ""}`.trim()}>
+          Matched
+        </div>
+        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "confirmed" ? "active" : ""}`.trim()}>
+          Confirmed
+        </div>
+        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "played" ? "active" : ""}`.trim()}>
+          Played
+        </div>
+        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "completed" ? "active" : ""}`.trim()}>
+          Rated
+        </div>
       </div>
 
       <div className="trust-summary-grid">
         <div className="trust-card">
-          <strong>{activeMatch.profile.reliabilityRating?.toFixed(1) ?? "4.8"}</strong>
-          <span>Reliability</span>
+          <strong>{activeMatch.trustProfile?.overall?.toFixed?.(1) ?? activeMatch.profile.reliabilityRating?.toFixed(1) ?? "4.8"}</strong>
+          <span>Overall trust</span>
         </div>
         <div className="trust-card">
-          <strong>{activeMatch.profile.completedRounds ?? 0}</strong>
+          <strong>{activeMatch.trustProfile?.wouldPlayAgainRate ?? 100}%</strong>
+          <span>Would play again</span>
+        </div>
+        <div className="trust-card">
+          <strong>{activeMatch.trustProfile?.completedRounds ?? activeMatch.profile.completedRounds ?? 0}</strong>
           <span>Completed rounds</span>
         </div>
-        <div className="trust-card">
-          <strong>{activeMatch.profile.verifiedGolfer ? "Yes" : "No"}</strong>
-          <span>Verified golfer</span>
-        </div>
+      </div>
+
+      <div className="history-meta-row">
+        <span>Pace {activeMatch.trustProfile?.pace ?? 4.8}</span>
+        <span>Friendliness {activeMatch.trustProfile?.friendliness ?? 4.9}</span>
+        <span>Reliability {activeMatch.trustProfile?.reliability ?? 4.8}</span>
+        <span>Etiquette {activeMatch.trustProfile?.etiquette ?? 4.8}</span>
       </div>
 
       <section className="confirmation-panel">
@@ -944,6 +1000,9 @@ function MatchWorkspace({
         <button className="ghost-button danger" type="button" onClick={() => onTrustAction(activeMatch.id, "block", "Blocked from demo trust center")}>
           Block golfer
         </button>
+        <button className="match-action" type="button" onClick={() => onRebookRound(activeMatch.profile.id)}>
+          Rebook this group
+        </button>
       </div>
 
       <div className="rating-panel">
@@ -1006,9 +1065,24 @@ function MatchWorkspace({
           value={review.note}
           onChange={(event) => setReview((current) => ({ ...current, note: event.target.value }))}
         />
-        <button className="primary-button compact" type="button" onClick={() => onSubmitRating(activeMatch.id, review)} disabled={!review.overall}>
-          Save rating
-        </button>
+        <div className="rating-actions-row">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => onCompleteRound(activeMatch.id)}
+            disabled={activeMatch.lifecycle?.step === "played" || activeMatch.lifecycle?.step === "completed"}
+          >
+            Mark round as played
+          </button>
+          <button
+            className="primary-button compact"
+            type="button"
+            onClick={() => onSubmitRating(activeMatch.id, review)}
+            disabled={!review.overall || !["played", "completed"].includes(activeMatch.lifecycle?.step)}
+          >
+            Save rating
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -1039,6 +1113,8 @@ export default function MatchApp({
   onCancelMatch,
   onConfirmationUpdate,
   onCreateInvite,
+  onCompleteRound,
+  onRebookRound,
   onTeeTimeUpdate,
   onLogout,
   onSettingsChange,
@@ -1235,6 +1311,8 @@ export default function MatchApp({
                 ))}
               </section>
 
+              <DiscoveryContextPanel teeTime={teeTime} user={user} />
+
               <SwipeDeck deck={deck} onSwipe={onSwipe} onOpenProfile={setSelectedProfile} />
 
               <section className="actions">
@@ -1253,11 +1331,17 @@ export default function MatchApp({
               previousPartners={previousPartners}
               onFavoritePartner={onFavoritePartner}
               onReInvitePartner={onReInvitePartner}
+              onRebookRound={onRebookRound}
             />
           ) : null}
 
           {activeTab === "history" ? (
-            <RoundHistoryPanel rounds={roundHistory} onSaveScorecard={onSaveScorecard} onReInvitePartner={onReInvitePartner} />
+            <RoundHistoryPanel
+              rounds={roundHistory}
+              onSaveScorecard={onSaveScorecard}
+              onReInvitePartner={onReInvitePartner}
+              onRebookRound={onRebookRound}
+            />
           ) : null}
 
           {activeTab === "courses" ? <CoursePagesPanel courses={courses} /> : null}
@@ -1271,6 +1355,8 @@ export default function MatchApp({
             onSubmitRating={onSubmitRating}
             onTrustAction={onTrustAction}
             onConfirmationUpdate={onConfirmationUpdate}
+            onCompleteRound={onCompleteRound}
+            onRebookRound={onRebookRound}
           />
         </section>
       </main>

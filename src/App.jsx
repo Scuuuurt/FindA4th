@@ -71,6 +71,21 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!activeMatchId) return undefined;
+
+    const intervalId = window.setInterval(async () => {
+      try {
+        const messages = await api.getMessages(activeMatchId);
+        setActiveMessages(messages);
+      } catch (error) {
+        // Keep polling quiet in demo mode if a match disappears.
+      }
+    }, 8000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeMatchId]);
+
   function commitSnapshot(nextSnapshot) {
     startTransition(() => {
       setSnapshot(nextSnapshot);
@@ -183,6 +198,10 @@ export default function App() {
     setActiveMessages(messages);
   }
 
+  function handleCompleteRound(matchId) {
+    api.completeRound(matchId).then(commitSnapshot);
+  }
+
   async function handleSubmitRating(matchId, payload, note) {
     const result = await api.submitRating(matchId, payload, note);
     if (!result) return;
@@ -231,6 +250,10 @@ export default function App() {
 
   function handleCreateInvite(kind) {
     api.createInvite(kind).then(commitSnapshot);
+  }
+
+  function handleRebookRound(source) {
+    api.rebookRound(source).then(commitSnapshot);
   }
 
   const activeMatch = snapshot?.matches?.find((match) => match.id === activeMatchId) ?? null;
@@ -289,6 +312,8 @@ export default function App() {
         onCancelMatch={handleCancelMatch}
         onConfirmationUpdate={handleConfirmationUpdate}
         onCreateInvite={handleCreateInvite}
+        onCompleteRound={handleCompleteRound}
+        onRebookRound={handleRebookRound}
         onTeeTimeUpdate={handleTeeTimeUpdate}
         onSettingsChange={handleUserChange}
       onFilterChange={handleFilterChange}

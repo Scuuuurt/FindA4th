@@ -105,6 +105,9 @@ const httpApi = {
       body: JSON.stringify({ text })
     });
   },
+  completeRound(matchId) {
+    return localApi.completeRound(matchId);
+  },
   submitRating(matchId, rating, note) {
     return request(`/api/matches/${matchId}/ratings`, {
       method: "POST",
@@ -137,6 +140,9 @@ const httpApi = {
   },
   createInvite(kind) {
     return localApi.createInvite(kind);
+  },
+  rebookRound(source) {
+    return localApi.rebookRound(source);
   }
 };
 

@@ -694,6 +694,27 @@ input[type="range"] {
   margin-top: 8px;
 }
 
+.discovery-context-panel {
+  margin-top: 14px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(14, 31, 21, 0.98), rgba(28, 73, 48, 0.94));
+  color: white;
+  box-shadow: 0 22px 44px rgba(16, 31, 21, 0.18);
+}
+
+.discovery-context-panel h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2rem;
+}
+
+.discovery-context-panel .posting-lead,
+.discovery-context-panel .summary-chip {
+  color: rgba(255, 255, 255, 0.82);
+}
+
 .filters::-webkit-scrollbar {
   display: none;
 }
@@ -1129,6 +1150,30 @@ input[type="range"] {
   box-shadow: var(--shadow-soft);
 }
 
+.lifecycle-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.lifecycle-pill {
+  padding: 10px 12px;
+  border-radius: 999px;
+  text-align: center;
+  background: rgba(19, 33, 22, 0.06);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lifecycle-pill.active {
+  background: linear-gradient(135deg, rgba(17, 61, 39, 0.95), rgba(45, 125, 83, 0.88));
+  color: white;
+}
+
 .chat-panel.empty {
   text-align: left;
 }
@@ -1406,6 +1451,13 @@ input[type="range"] {
   align-content: center;
 }
 
+.rating-actions-row {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .notification-actions span,
 .invite-item span,
 .history-copy span {
@@ -1610,7 +1662,9 @@ input[type="range"] {
   .detail-grid,
   .card-footer,
   .course-grid,
-  .modal-profile-grid {
+  .modal-profile-grid,
+  .lifecycle-strip,
+  .rating-actions-row {
     grid-template-columns: 1fr;
   }
 
