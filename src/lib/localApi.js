@@ -530,9 +530,11 @@ export const localApi = {
     return Promise.resolve(snapshotForToken(this.token));
   },
 
-  swipe(direction) {
+  swipe(direction, profileId) {
     const userState = requireUser(this.token);
-    const topProfile = filteredDeck(userState)[0];
+    const activeDeck = filteredDeck(userState);
+    const topProfile =
+      activeDeck.find((profile) => String(profile.id) === String(profileId)) ?? activeDeck[0];
     if (!topProfile) return Promise.resolve(snapshotForToken(this.token));
 
     userState.swipes.set(topProfile.id, direction);

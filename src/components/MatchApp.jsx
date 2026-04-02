@@ -24,6 +24,10 @@ const SECONDARY_TABS = [
   ["dashboard", "Dashboard"],
   ["courses", "Course pages"]
 ];
+const MARKET_WINDOWS = [
+  ["groups", "Groups"],
+  ["social", "Social"]
+];
 
 function DayPicker({ value, onChange }) {
   function toggleDay(day) {
@@ -564,7 +568,84 @@ function EmptyShelf({ title, copy, actionLabel, onAction }) {
   );
 }
 
-function DiscoveryContextPanel({ teeTime, user }) {
+function buildWindowDeck(deck, marketWindow) {
+  if (marketWindow === "groups") {
+    return deck
+      .filter((profile) => profile.type === "Group")
+      .map((profile) => ({
+        ...profile,
+        marketWindow,
+        surfaceType: "Live group",
+        surfaceBadge: `${profile.slots} open slot${profile.slots > 1 ? "s" : ""}`,
+        surfaceMeta: `${profile.course} · ${profile.teeTime}`
+      }));
+  }
+
+  return deck
+    .filter((profile) => profile.type === "Single")
+    .map((profile) => ({
+      ...profile,
+      marketWindow,
+      surfaceType: "Social golfer",
+      surfaceBadge: "Future round",
+      surfaceMeta: `${profile.homeCourse} · ${profile.availableDays.join(" / ")} · ${profile.availabilityWindow}`,
+      fit: "Good fit for a future round",
+      tags: [...profile.tags, "No tee time posted yet"]
+    }));
+}
+
+function MarketWindowSwitcher({ marketWindow, onChange }) {
+  return (
+    <section className="market-window-switcher" aria-label="Product windows">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Product windows</p>
+          <h3>Separate live tee times from future-round networking</h3>
+        </div>
+      </div>
+      <div className="market-window-row">
+        {MARKET_WINDOWS.map(([value, label]) => (
+          <button
+            key={value}
+            className={`market-window-card ${marketWindow === value ? "active" : ""}`.trim()}
+            type="button"
+            onClick={() => onChange(value)}
+          >
+            <span className="flow-guide-state">{label}</span>
+            <strong>{value === "groups" ? "Groups with a live tee time" : "Golfers open to future rounds"}</strong>
+            <p>
+              {value === "groups"
+                ? "Use this window for active group postings that already have a course, date, and time."
+                : "Use this window for golfers who do not have a tee time yet and want to connect for another day."}
+            </p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DiscoveryContextPanel({ teeTime, user, marketWindow }) {
+  if (marketWindow === "social") {
+    return (
+      <section className="discovery-context-panel social">
+        <div>
+          <p className="topbar-label">Social window</p>
+          <h3>Meet golfers for a future round</h3>
+          <p className="posting-lead">
+            No tee time is attached here. This lane is for finding golfers with overlapping availability, similar vibe,
+            and enough trust to set up the next round together.
+          </p>
+        </div>
+        <div className="summary-accent-row">
+          <span className="summary-chip">Within {user.distance} miles</span>
+          <span className="summary-chip">{user.availabilityWindow}</span>
+          <span className="summary-chip">{user.socialStyle}</span>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="discovery-context-panel">
       <div>
@@ -895,13 +976,13 @@ function PlayerDashboard({ rounds, user, previousPartners }) {
   );
 }
 
-function ListingsBoard({ deck, onOpenProfile, onSwipe }) {
+function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
   return (
     <section className="listings-board">
       <div className="panel-header">
         <div>
           <p className="topbar-label">Browse listings</p>
-          <h3>Marketplace-style tee time inventory</h3>
+          <h3>{marketWindow === "social" ? "Future-round golfer connections" : "Marketplace-style tee time inventory"}</h3>
         </div>
         <div className="panel-status">{deck.length} live demo listings</div>
       </div>
@@ -914,11 +995,11 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe }) {
                 <strong>{profile.name}</strong>
                 <span className="tag verified">{profile.compatibility?.score ?? 0}% fit</span>
               </div>
-              <p>{profile.course} · {profile.teeTime}</p>
+              <p>{profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}</p>
               <div className="history-meta-row">
-                <span>{profile.type}</span>
+                <span>{profile.surfaceType ?? profile.type}</span>
                 <span>{profile.handicap}</span>
-                <span>{profile.slots} spot{profile.slots > 1 ? "s" : ""}</span>
+                <span>{profile.surfaceBadge ?? `${profile.slots} spot${profile.slots > 1 ? "s" : ""}`}</span>
               </div>
               <div className="tag-row">
                 {(profile.compatibility?.reasons ?? []).map((reason) => (
@@ -931,10 +1012,10 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe }) {
                 <button className="ghost-button compact" type="button" onClick={() => onOpenProfile(profile)}>
                   View
                 </button>
-                <button className="ghost-button compact" type="button" onClick={() => onSwipe("left")}>
+                <button className="ghost-button compact" type="button" onClick={() => onSwipe("left", profile.id)}>
                   Pass
                 </button>
-                <button className="match-action" type="button" onClick={() => onSwipe("right")}>
+                <button className="match-action" type="button" onClick={() => onSwipe("right", profile.id)}>
                   Match
                 </button>
               </div>
@@ -1277,7 +1358,7 @@ function ProfileModal({ profile, onClose }) {
           <div className="modal-image" style={{ backgroundImage: profile.image }} />
           <div className="modal-copy">
             <p className="match-plan">
-              {profile.course} · {profile.teeTime} · {profile.handicap}
+              {profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`} · {profile.handicap}
             </p>
             <p className="profile-bio">{profile.bio}</p>
             <div className="tag-row">
@@ -1673,16 +1754,35 @@ export default function MatchApp({
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedRound, setSelectedRound] = useState(null);
   const [discoveryMode, setDiscoveryMode] = useState("swipe");
+  const [marketWindow, setMarketWindow] = useState("groups");
   const unreadCount = notifications.filter((item) => item.unread).length;
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
   const hasSavedRounds = roundHistory.length > 0;
   const secondaryTabs = hasSavedRounds ? SECONDARY_TABS : [];
+  const windowDeck = useMemo(() => buildWindowDeck(deck, marketWindow), [deck, marketWindow]);
+  const primaryTabs = marketWindow === "groups" ? PRIMARY_TABS : PRIMARY_TABS.filter(([value]) => value !== "tee-time");
+  const visibleFilters = useMemo(
+    () => FILTERS.filter((value) => value !== "single" && value !== "group"),
+    []
+  );
 
   useEffect(() => {
     if (!hasSavedRounds && SECONDARY_TABS.some(([value]) => value === activeTab)) {
       setActiveTab("tee-time");
     }
   }, [activeTab, hasSavedRounds]);
+
+  useEffect(() => {
+    if (marketWindow === "social" && activeTab === "tee-time") {
+      setActiveTab("discovery");
+    }
+  }, [activeTab, marketWindow]);
+
+  useEffect(() => {
+    if (filter === "single" || filter === "group") {
+      onFilterChange("all");
+    }
+  }, [filter, onFilterChange]);
 
   return (
     <div className="app-shell">
@@ -1748,9 +1848,9 @@ export default function MatchApp({
             <em>{teeTime.bookingStatus} · {teeTime.greenFeeRange}</em>
           </article>
           <article className="hero-showcase-card">
-            <p className="topbar-label">Best-fit signal</p>
-            <strong>{deck[0]?.compatibility?.score ?? 0}% match</strong>
-            <span>{deck[0]?.name ?? "Waiting on the next golfer"}</span>
+            <p className="topbar-label">{marketWindow === "social" ? "Social fit signal" : "Best-fit signal"}</p>
+            <strong>{windowDeck[0]?.compatibility?.score ?? 0}% match</strong>
+            <span>{windowDeck[0]?.name ?? "Waiting on the next golfer"}</span>
           </article>
         </section>
 
@@ -1787,8 +1887,10 @@ export default function MatchApp({
             </div>
           </header>
 
+          <MarketWindowSwitcher marketWindow={marketWindow} onChange={setMarketWindow} />
+
           <section className="view-tabs" aria-label="Primary app views">
-            {PRIMARY_TABS.map(([value, label]) => (
+            {primaryTabs.map(([value, label]) => (
               <button
                 key={value}
                 className={`view-tab ${activeTab === value ? "active" : ""}`.trim()}
@@ -1821,7 +1923,7 @@ export default function MatchApp({
           {activeTab === "tee-time" ? (
             <>
               <section className="intro-grid intro-grid-flow">
-                <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
+                <DemoSpotlight teeTime={teeTime} deck={windowDeck} matches={matches} notifications={notifications} invites={invites} />
                 <div className="intro-sidecar">
                   <FlowGuide teeTime={teeTime} matches={matches} roundHistory={roundHistory} onJump={setActiveTab} />
                   <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
@@ -1870,19 +1972,29 @@ export default function MatchApp({
             <>
               <section className="discovery-header-panel">
                 <div>
-                  <p className="topbar-label">Matching for this round</p>
-                  <h3>{teeTime.postingType === "single" ? "Review groups around your posted tee time" : "Review golfers for the open spot in your group"}</h3>
+                  <p className="topbar-label">{marketWindow === "social" ? "Social discovery" : "Group discovery"}</p>
+                  <h3>
+                    {marketWindow === "social"
+                      ? "Meet golfers who want to set up a future round"
+                      : teeTime.postingType === "single"
+                        ? "Review groups around your posted tee time"
+                        : "Review live group openings tied to real tee times"}
+                  </h3>
                   <p className="posting-lead">
-                    Every card below is framed against the course, time, vibe, and skill window you posted in the tee-time step.
+                    {marketWindow === "groups"
+                      ? "Every card below is framed against the course, time, vibe, and skill window you posted in the tee-time step."
+                      : "This window is intentionally separate from live tee times so people can connect first and decide on a future round later."}
                   </p>
                 </div>
-                <button className="ghost-button" type="button" onClick={() => setActiveTab("tee-time")}>
-                  Edit tee time
-                </button>
+                {marketWindow === "groups" ? (
+                  <button className="ghost-button" type="button" onClick={() => setActiveTab("tee-time")}>
+                    Edit tee time
+                  </button>
+                ) : null}
               </section>
 
               <section className="filters" aria-label="Profile filters">
-                {FILTERS.map((value) => (
+                {visibleFilters.map((value) => (
                   <button
                     key={value}
                     className={`filter-chip ${filter === value ? "active" : ""}`.trim()}
@@ -1894,7 +2006,7 @@ export default function MatchApp({
                 ))}
               </section>
 
-              <DiscoveryContextPanel teeTime={teeTime} user={user} />
+              <DiscoveryContextPanel teeTime={teeTime} user={user} marketWindow={marketWindow} />
 
               <div className="segmented-control discovery-toggle">
                 <button
@@ -1915,19 +2027,19 @@ export default function MatchApp({
 
               {discoveryMode === "swipe" ? (
                 <>
-                  <SwipeDeck deck={deck} onSwipe={onSwipe} onOpenProfile={setSelectedProfile} />
+                  <SwipeDeck deck={windowDeck} onSwipe={onSwipe} onOpenProfile={setSelectedProfile} />
 
                   <section className="actions">
-                    <button className="swipe-button dismiss" type="button" onClick={() => onSwipe("left")}>
+                    <button className="swipe-button dismiss" type="button" onClick={() => onSwipe("left", windowDeck[0]?.id)}>
                       <span>x</span>
                     </button>
-                    <button className="swipe-button approve" type="button" onClick={() => onSwipe("right")}>
+                    <button className="swipe-button approve" type="button" onClick={() => onSwipe("right", windowDeck[0]?.id)}>
                       <span>♥</span>
                     </button>
                   </section>
                 </>
               ) : (
-                <ListingsBoard deck={deck} onOpenProfile={setSelectedProfile} onSwipe={onSwipe} />
+                <ListingsBoard deck={windowDeck} onOpenProfile={setSelectedProfile} onSwipe={onSwipe} marketWindow={marketWindow} />
               )}
             </>
           ) : null}

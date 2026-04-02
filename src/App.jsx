@@ -178,8 +178,8 @@ export default function App() {
     api.updateTeeTime(nextTeeTime).then(commitSnapshot);
   }
 
-  function handleSwipe(direction) {
-    api.swipe(direction).then(commitSnapshot);
+  function handleSwipe(direction, profileId) {
+    api.swipe(direction, profileId).then(commitSnapshot);
   }
 
   async function handleOpenMatch(match) {

@@ -4,7 +4,7 @@ function labelize(value) {
   return value.replace("_", " ");
 }
 
-function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenProfile }) {
+function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenProfile, marketWindow }) {
   const isTop = offset === 0;
   const style = isTop
     ? { transform: `translateX(${dragX}px) rotate(${dragX / 18}deg)` }
@@ -24,16 +24,19 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
       <div className="card-image" style={{ backgroundImage: profile.image }}>
         <div className="image-overlay"></div>
         <div className="badge-row">
-          <span className="type-badge">{profile.type}</span>
+          <span className="type-badge">{profile.surfaceType ?? profile.type}</span>
           <span className="slots-badge">
-            {profile.slots} open slot{profile.slots > 1 ? "s" : ""}
+            {profile.surfaceBadge ??
+              `${profile.slots} open slot${profile.slots > 1 ? "s" : ""}`}
           </span>
         </div>
       </div>
 
       <div className="card-body">
         <div className="card-kicker-row">
-          <span className="card-kicker">Best match right now</span>
+          <span className="card-kicker">
+            {marketWindow === "social" ? "Future-round fit" : "Best match right now"}
+          </span>
           {profile.compatibility ? <span className="card-kicker">{profile.compatibility.score}% fit</span> : null}
           {profile.verifiedCourse ? <span className="card-kicker muted">Verified course</span> : null}
           {profile.verifiedGolfer ? <span className="card-kicker muted">Verified golfer</span> : null}
@@ -44,7 +47,7 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
               {profile.type === "Single" ? `${profile.name}, ${profile.age}` : profile.name}
             </h3>
             <p className="profile-meta">
-              {profile.course} · {profile.teeTime}
+              {profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}
             </p>
           </div>
           <div className="profile-handicap">{profile.handicap}</div>
@@ -139,8 +142,8 @@ export default function SwipeDeck({ deck, onSwipe, onOpenProfile }) {
     const swipeX = dragState.x;
     setDragState({ dragging: false, startX: 0, x: 0 });
 
-    if (swipeX > 90) onSwipe("right");
-    if (swipeX < -90) onSwipe("left");
+    if (swipeX > 90) onSwipe("right", topCard?.id);
+    if (swipeX < -90) onSwipe("left", topCard?.id);
   }
 
   return (
@@ -161,6 +164,7 @@ export default function SwipeDeck({ deck, onSwipe, onOpenProfile }) {
               <ProfileCard
                 key={profile.id}
                 profile={profile}
+                marketWindow={profile.marketWindow}
                 offset={index}
                 dragX={index === 0 ? dragState.x : 0}
                 dragging={dragState.dragging}

@@ -90,10 +90,10 @@ const httpApi = {
   refreshDeck() {
     return request("/api/bootstrap");
   },
-  swipe(direction) {
+  swipe(direction, profileId) {
     return request("/api/discovery/swipe", {
       method: "POST",
-      body: JSON.stringify({ direction })
+      body: JSON.stringify({ direction, profileId })
     });
   },
   getMessages(matchId) {
