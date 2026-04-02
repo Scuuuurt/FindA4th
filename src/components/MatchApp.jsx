@@ -14,6 +14,16 @@ import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
 const CANCEL_REASONS = ["Schedule changed", "Booked elsewhere", "Wrong fit", "Weather concern"];
+const PRIMARY_TABS = [
+  ["tee-time", "Post a tee time"],
+  ["discovery", "Find your fit"],
+  ["partners", "Previous partners"]
+];
+const SECONDARY_TABS = [
+  ["history", "Round history"],
+  ["dashboard", "Dashboard"],
+  ["courses", "Course pages"]
+];
 
 function DayPicker({ value, onChange }) {
   function toggleDay(day) {
@@ -478,6 +488,77 @@ function DemoSpotlight({ teeTime, deck, matches, notifications, invites }) {
           <strong>{notifications.filter((item) => item.unread).length + invites.length}</strong>
           <span>Live activity and invite flows</span>
         </article>
+      </div>
+    </section>
+  );
+}
+
+function FlowGuide({ teeTime, matches, roundHistory, onJump }) {
+  const steps = [
+    {
+      id: "tee-time",
+      label: "1. Post the round",
+      state: teeTime.homeCourse && teeTime.teeDate && teeTime.teeTime ? "ready" : "current",
+      detail: `${teeTime.homeCourse} · ${teeTime.dayLabel}`
+    },
+    {
+      id: "discovery",
+      label: "2. Review the best fits",
+      state: matches.length > 0 ? "ready" : "current",
+      detail:
+        matches.length > 0
+          ? `${matches.length} match${matches.length === 1 ? "" : "es"} already in motion`
+          : "Swipe or browse golfers and groups for this exact round"
+    },
+    {
+      id: "history",
+      label: "3. Save the round after you play",
+      state: roundHistory.length > 0 ? "ready" : "upcoming",
+      detail:
+        roundHistory.length > 0
+          ? `${roundHistory.length} logged round${roundHistory.length === 1 ? "" : "s"}`
+          : "Round history and dashboard unlock once the day is complete"
+    }
+  ];
+
+  return (
+    <section className="flow-guide-panel">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Start here</p>
+          <h3>Follow the live round flow</h3>
+        </div>
+        <div className="panel-status">Demo guide</div>
+      </div>
+      <div className="flow-guide-list">
+        {steps.map((step) => (
+          <button
+            key={step.id}
+            className={`flow-guide-step ${step.state}`.trim()}
+            type="button"
+            onClick={() => onJump(step.id)}
+          >
+            <span className="flow-guide-state">{step.state === "ready" ? "Ready" : step.state === "current" ? "Next" : "Later"}</span>
+            <strong>{step.label}</strong>
+            <p>{step.detail}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function EmptyShelf({ title, copy, actionLabel, onAction }) {
+  return (
+    <section className="empty-state compact">
+      <div>
+        <h3>{title}</h3>
+        <p>{copy}</p>
+        {actionLabel ? (
+          <button className="ghost-button empty-state-action" type="button" onClick={onAction}>
+            {actionLabel}
+          </button>
+        ) : null}
       </div>
     </section>
   );
@@ -1594,6 +1675,14 @@ export default function MatchApp({
   const [discoveryMode, setDiscoveryMode] = useState("swipe");
   const unreadCount = notifications.filter((item) => item.unread).length;
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
+  const hasSavedRounds = roundHistory.length > 0;
+  const secondaryTabs = hasSavedRounds ? SECONDARY_TABS : [];
+
+  useEffect(() => {
+    if (!hasSavedRounds && SECONDARY_TABS.some(([value]) => value === activeTab)) {
+      setActiveTab("tee-time");
+    }
+  }, [activeTab, hasSavedRounds]);
 
   return (
     <div className="app-shell">
@@ -1686,7 +1775,7 @@ export default function MatchApp({
             <div>
               <p className="topbar-label">FindA4th</p>
               <h2>Complete the round</h2>
-              <p className="topbar-subtitle">Post a tee time, rank the best fits, confirm the round, and save it to your golf history.</p>
+              <p className="topbar-subtitle">Start with one round, then let the rest of the product unfold around that tee time.</p>
             </div>
             <div className="topbar-actions">
               <button className="ghost-button" type="button" onClick={onRefresh}>
@@ -1698,23 +1787,8 @@ export default function MatchApp({
             </div>
           </header>
 
-          <section className="intro-grid">
-            <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
-            <div className="intro-sidecar">
-              <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
-              <InvitePanel invites={invites} onCreateInvite={onCreateInvite} />
-            </div>
-          </section>
-
           <section className="view-tabs" aria-label="Primary app views">
-            {[
-              ["dashboard", "Dashboard"],
-              ["tee-time", "Post a tee time"],
-              ["discovery", "Discovery"],
-              ["partners", "Previous partners"],
-              ["history", "Round history"],
-              ["courses", "Course pages"]
-            ].map(([value, label]) => (
+            {PRIMARY_TABS.map(([value, label]) => (
               <button
                 key={value}
                 className={`view-tab ${activeTab === value ? "active" : ""}`.trim()}
@@ -1726,12 +1800,35 @@ export default function MatchApp({
             ))}
           </section>
 
-          {activeTab === "dashboard" ? (
-            <PlayerDashboard rounds={roundHistory} user={user} previousPartners={previousPartners} />
+          {secondaryTabs.length ? (
+            <section className="secondary-tabs" aria-label="Additional app views">
+              <span className="secondary-tabs-label">Unlocked after a completed round</span>
+              <div className="secondary-tabs-row">
+                {secondaryTabs.map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={`view-tab secondary ${activeTab === value ? "active" : ""}`.trim()}
+                    type="button"
+                    onClick={() => setActiveTab(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           {activeTab === "tee-time" ? (
             <>
+              <section className="intro-grid intro-grid-flow">
+                <DemoSpotlight teeTime={teeTime} deck={deck} matches={matches} notifications={notifications} invites={invites} />
+                <div className="intro-sidecar">
+                  <FlowGuide teeTime={teeTime} matches={matches} roundHistory={roundHistory} onJump={setActiveTab} />
+                  <NotificationCenter notifications={notifications} onRead={onNotificationRead} />
+                  <InvitePanel invites={invites} onCreateInvite={onCreateInvite} />
+                </div>
+              </section>
+
               <TeeTimePostingPanel teeTime={teeTime} user={user} onSave={onTeeTimeUpdate} />
 
               <section className="summary-strip">
@@ -1771,6 +1868,19 @@ export default function MatchApp({
 
           {activeTab === "discovery" ? (
             <>
+              <section className="discovery-header-panel">
+                <div>
+                  <p className="topbar-label">Matching for this round</p>
+                  <h3>{teeTime.postingType === "single" ? "Review groups around your posted tee time" : "Review golfers for the open spot in your group"}</h3>
+                  <p className="posting-lead">
+                    Every card below is framed against the course, time, vibe, and skill window you posted in the tee-time step.
+                  </p>
+                </div>
+                <button className="ghost-button" type="button" onClick={() => setActiveTab("tee-time")}>
+                  Edit tee time
+                </button>
+              </section>
+
               <section className="filters" aria-label="Profile filters">
                 {FILTERS.map((value) => (
                   <button
@@ -1832,18 +1942,51 @@ export default function MatchApp({
           ) : null}
 
           {activeTab === "history" ? (
-            <>
-              <StatsDashboard rounds={roundHistory} />
-              <RoundHistoryPanel
-                rounds={roundHistory}
-                onOpenRound={setSelectedRound}
-                onReInvitePartner={onReInvitePartner}
-                onRebookRound={onRebookRound}
+            hasSavedRounds ? (
+              <>
+                <StatsDashboard rounds={roundHistory} />
+                <RoundHistoryPanel
+                  rounds={roundHistory}
+                  onOpenRound={setSelectedRound}
+                  onReInvitePartner={onReInvitePartner}
+                  onRebookRound={onRebookRound}
+                />
+              </>
+            ) : (
+              <EmptyShelf
+                title="Round history appears after you play"
+                copy="Use the tee-time and discovery steps first. Once you mark a round as played, this shelf becomes your golf log."
+                actionLabel="Go to discovery"
+                onAction={() => setActiveTab("discovery")}
               />
-            </>
+            )
           ) : null}
 
-          {activeTab === "courses" ? <CoursePagesPanel courses={courses} /> : null}
+          {activeTab === "dashboard" ? (
+            hasSavedRounds ? (
+              <PlayerDashboard rounds={roundHistory} user={user} previousPartners={previousPartners} />
+            ) : (
+              <EmptyShelf
+                title="Dashboard unlocks after your first logged round"
+                copy="Keep the first demo focused on posting a round, matching, and finishing the loop. Then the golf insights become meaningful."
+                actionLabel="Post a tee time"
+                onAction={() => setActiveTab("tee-time")}
+              />
+            )
+          ) : null}
+
+          {activeTab === "courses" ? (
+            hasSavedRounds ? (
+              <CoursePagesPanel courses={courses} />
+            ) : (
+              <EmptyShelf
+                title="Course pages become more useful after a finished round"
+                copy="They work best once there is history, favorite venues, and replay data feeding the demo."
+                actionLabel="See previous partners"
+                onAction={() => setActiveTab("partners")}
+              />
+            )
+          ) : null}
 
           <MatchList matches={matches} activeMatchId={activeMatch?.id} onOpenMatch={onOpenMatch} onCancelMatch={onCancelMatch} />
           <MatchWorkspace
