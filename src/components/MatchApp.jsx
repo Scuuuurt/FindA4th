@@ -14,11 +14,6 @@ import SwipeDeck from "./SwipeDeck";
 
 const FILTERS = ["all", "single", "group", "competitive", "social"];
 const CANCEL_REASONS = ["Schedule changed", "Booked elsewhere", "Wrong fit", "Weather concern"];
-const PRIMARY_TABS = [
-  ["tee-time", "Post a tee time"],
-  ["discovery", "Find your fit"],
-  ["partners", "Previous partners"]
-];
 const SECONDARY_TABS = [
   ["history", "Round history"],
   ["dashboard", "Dashboard"],
@@ -588,13 +583,13 @@ function buildWindowDeck(deck, marketWindow) {
     }));
 }
 
-function MarketWindowSwitcher({ marketWindow, onChange }) {
+function MarketWindowSwitcher({ marketWindow, onChange, groupCount, socialCount }) {
   return (
     <section className="market-window-switcher" aria-label="Product windows">
       <div className="panel-header">
         <div>
           <p className="topbar-label">Product windows</p>
-          <h3>Separate live tee times from future-round networking</h3>
+          <h3>Choose between active tee times and social golf friends</h3>
         </div>
       </div>
       <div className="market-window-row">
@@ -606,12 +601,15 @@ function MarketWindowSwitcher({ marketWindow, onChange }) {
             onClick={() => onChange(value)}
           >
             <span className="flow-guide-state">{label}</span>
-            <strong>{value === "groups" ? "Groups with a live tee time" : "Golfers open to future rounds"}</strong>
+            <strong>{value === "groups" ? "Active tee times" : "Social / golf friends"}</strong>
             <p>
               {value === "groups"
-                ? "Use this window for active group postings that already have a course, date, and time."
-                : "Use this window for golfers who do not have a tee time yet and want to connect for another day."}
+                ? "Browse real group postings that already have a course, date, and time and need golfers now."
+                : "Browse golfers without a tee time who are just looking to meet new people for a future round."}
             </p>
+            <span className="market-window-count">
+              {value === "groups" ? groupCount : socialCount} {value === "groups" ? "active postings" : "social golfers"}
+            </span>
           </button>
         ))}
       </div>
@@ -1753,8 +1751,23 @@ export default function MatchApp({
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
   const hasSavedRounds = roundHistory.length > 0;
   const secondaryTabs = hasSavedRounds ? SECONDARY_TABS : [];
+  const groupDeck = useMemo(() => buildWindowDeck(deck, "groups"), [deck]);
+  const socialDeck = useMemo(() => buildWindowDeck(deck, "social"), [deck]);
   const windowDeck = useMemo(() => buildWindowDeck(deck, marketWindow), [deck, marketWindow]);
-  const primaryTabs = marketWindow === "groups" ? PRIMARY_TABS : PRIMARY_TABS.filter(([value]) => value !== "tee-time");
+  const primaryTabs = useMemo(() => {
+    if (marketWindow === "groups") {
+      return [
+        ["tee-time", "Post active tee time"],
+        ["discovery", "Active tee times"],
+        ["partners", "Previous partners"]
+      ];
+    }
+
+    return [
+      ["discovery", "Golf friends"],
+      ["partners", "Previous partners"]
+    ];
+  }, [marketWindow]);
   const visibleFilters = useMemo(
     () => FILTERS.filter((value) => value !== "single" && value !== "group"),
     []
@@ -1787,24 +1800,36 @@ export default function MatchApp({
         </div>
         <div className="hero-copy">
           <p className="eyebrow">TEE TIME MATCHING</p>
-          <h1>Post a tee time and build the right foursome.</h1>
+          <h1>{marketWindow === "groups" ? "Post a tee time and build the right foursome." : "Meet golfers first, plan the round later."}</h1>
           <p className="hero-text">
-            Today’s demo shows a fuller `FindA4th` product: smarter tee-time posting, ranked matching, round confirmation,
-            trust and reputation tools, course intelligence, invites, and repeat rounds.
+            {marketWindow === "groups"
+              ? "This side of FindA4th is for active tee times that already have a course, date, and time and need golfers now."
+              : "This side of FindA4th is for golfers without a tee time who just want to make golf friends for future rounds."}
           </p>
         </div>
 
         <div className="hero-marquee">
-          <span>Smarter tee-time posting</span>
-          <span>Match rankings and confirmations</span>
-          <span>Round history and scorecards</span>
-          <span>Course pages and invite flows</span>
+          {marketWindow === "groups" ? (
+            <>
+              <span>Active tee-time postings</span>
+              <span>Match rankings and confirmations</span>
+              <span>Fill an open spot now</span>
+              <span>Round history and scorecards</span>
+            </>
+          ) : (
+            <>
+              <span>Meet new golf friends</span>
+              <span>Availability and vibe matching</span>
+              <span>No tee time required</span>
+              <span>Rebook and play again</span>
+            </>
+          )}
         </div>
 
         <div className="hero-stats">
           <article>
-            <strong>{teeTime.postingType === "single" ? "Join" : `${teeTime.openSlots}`}</strong>
-            <span>{teeTime.postingType === "single" ? "Looking for a group" : "Open spot to fill"}</span>
+            <strong>{marketWindow === "groups" ? (teeTime.postingType === "single" ? "Join" : `${teeTime.openSlots}`) : socialDeck.length}</strong>
+            <span>{marketWindow === "groups" ? (teeTime.postingType === "single" ? "Looking for a group" : "Open spot to fill") : "Golf friends nearby"}</span>
           </article>
           <article>
             <strong>{unreadCount}</strong>
@@ -1836,10 +1861,10 @@ export default function MatchApp({
 
         <section className="hero-showcase">
           <article className="hero-showcase-card hero-showcase-primary">
-            <p className="topbar-label">Today&apos;s round</p>
-            <strong>{teeTime.homeCourse}</strong>
-            <span>{teeTime.dayLabel}</span>
-            <em>{teeTime.bookingStatus} · {teeTime.greenFeeRange}</em>
+            <p className="topbar-label">{marketWindow === "groups" ? "Today&apos;s round" : "Social lane"}</p>
+            <strong>{marketWindow === "groups" ? teeTime.homeCourse : user.homeCourse || "Your home course"}</strong>
+            <span>{marketWindow === "groups" ? teeTime.dayLabel : `${user.availabilityWindow} · ${user.socialStyle}`}</span>
+            <em>{marketWindow === "groups" ? `${teeTime.bookingStatus} · ${teeTime.greenFeeRange}` : "No tee time posted yet"}</em>
           </article>
           <article className="hero-showcase-card">
             <p className="topbar-label">{marketWindow === "social" ? "Social fit signal" : "Best-fit signal"}</p>
@@ -1869,7 +1894,11 @@ export default function MatchApp({
             <div>
               <p className="topbar-label">FindA4th</p>
               <h2>Complete the round</h2>
-              <p className="topbar-subtitle">Start with one round, then let the rest of the product unfold around that tee time.</p>
+              <p className="topbar-subtitle">
+                {marketWindow === "groups"
+                  ? "Active tee times are for rounds that are already posted and need golfers now."
+                  : "Social is for golfers looking to meet people first and figure out a round later."}
+              </p>
             </div>
             <div className="topbar-actions">
               <button className="ghost-button" type="button" onClick={onRefresh}>
@@ -1881,7 +1910,12 @@ export default function MatchApp({
             </div>
           </header>
 
-          <MarketWindowSwitcher marketWindow={marketWindow} onChange={setMarketWindow} />
+          <MarketWindowSwitcher
+            marketWindow={marketWindow}
+            onChange={setMarketWindow}
+            groupCount={groupDeck.length}
+            socialCount={socialDeck.length}
+          />
 
           <section className="view-tabs" aria-label="Primary app views">
             {primaryTabs.map(([value, label]) => (
@@ -1979,6 +2013,14 @@ export default function MatchApp({
                       ? "Every card below is framed against the course, time, vibe, and skill window you posted in the tee-time step."
                       : "This window is intentionally separate from live tee times so people can connect first and decide on a future round later."}
                   </p>
+                  <div className="surface-explainer-row">
+                    <span className="summary-chip solid">
+                      {marketWindow === "groups" ? "Active tee times only" : "No tee times in this tab"}
+                    </span>
+                    <span className="summary-chip">
+                      {marketWindow === "groups" ? "Postings with date, time, and course" : "Golfers looking for golf friends"}
+                    </span>
+                  </div>
                 </div>
                 {marketWindow === "groups" ? (
                   <button className="ghost-button" type="button" onClick={() => setActiveTab("tee-time")}>

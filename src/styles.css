@@ -926,6 +926,16 @@ input[type="range"] {
   line-height: 1.45;
 }
 
+.market-window-count {
+  color: var(--green-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.market-window-card.active .market-window-count {
+  color: rgba(255, 255, 255, 0.86);
+}
+
 .secondary-tabs-label {
   color: var(--muted);
   font-size: 0.82rem;
@@ -1019,6 +1029,13 @@ input[type="range"] {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+}
+
+.surface-explainer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .discovery-context-panel.social {
