@@ -497,6 +497,168 @@ function DiscoveryContextPanel({ teeTime, user }) {
   );
 }
 
+function buildGolfStats(rounds) {
+  if (!rounds.length) {
+    return {
+      roundsPlayed: 0,
+      averageScore: "-",
+      bestRound: "-",
+      averageOverPar: "-",
+      favoriteCourse: "-"
+    };
+  }
+
+  const totalScore = rounds.reduce((sum, round) => sum + (round.scorecard?.total ?? 0), 0);
+  const bestRound = Math.min(...rounds.map((round) => round.scorecard?.total ?? 999));
+  const courseCounts = rounds.reduce((accumulator, round) => {
+    accumulator[round.course] = (accumulator[round.course] ?? 0) + 1;
+    return accumulator;
+  }, {});
+  const favoriteCourse =
+    Object.entries(courseCounts).sort((left, right) => right[1] - left[1])[0]?.[0] ?? "-";
+  const overParTotal = rounds.reduce((sum, round) => sum + (round.statline?.overPar ?? 0), 0);
+
+  return {
+    roundsPlayed: rounds.length,
+    averageScore: (totalScore / rounds.length).toFixed(1),
+    bestRound,
+    averageOverPar: (overParTotal / rounds.length).toFixed(1),
+    favoriteCourse
+  };
+}
+
+function StatsDashboard({ rounds }) {
+  const stats = buildGolfStats(rounds);
+
+  return (
+    <section className="stats-dashboard">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Golf stats</p>
+          <h3>Your post-round trend line</h3>
+        </div>
+        <div className="panel-status">{stats.roundsPlayed} saved rounds</div>
+      </div>
+      <div className="stats-grid">
+        <article>
+          <strong>{stats.averageScore}</strong>
+          <span>Average score</span>
+        </article>
+        <article>
+          <strong>{stats.bestRound}</strong>
+          <span>Best round total</span>
+        </article>
+        <article>
+          <strong>{stats.averageOverPar}</strong>
+          <span>Average over par</span>
+        </article>
+        <article>
+          <strong>{stats.favoriteCourse}</strong>
+          <span>Most played course</span>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function ScorecardEditorModal({ round, onClose, onSave }) {
+  const [draft, setDraft] = useState(round);
+
+  useEffect(() => {
+    setDraft(round);
+  }, [round]);
+
+  if (!round || !draft) return null;
+
+  function updateScore(index, value) {
+    const nextScores = draft.scorecard.scores.map((score, scoreIndex) =>
+      scoreIndex === index ? Number(value) || 0 : score
+    );
+    setDraft((current) => ({
+      ...current,
+      scorecard: {
+        ...current.scorecard,
+        scores: nextScores,
+        total: nextScores.reduce((sum, score) => sum + score, 0)
+      }
+    }));
+  }
+
+  function handleSave() {
+    onSave(round.id, {
+      scores: draft.scorecard.scores,
+      pars: draft.scorecard.pars,
+      uploadLabel: draft.scorecard.uploadLabel,
+      personalNotes: draft.personalNotes
+    });
+    onClose();
+  }
+
+  return (
+    <div className="modal-shell" role="dialog" aria-modal="true">
+      <div className="modal-backdrop" onClick={onClose} />
+      <section className="modal-card scorecard-modal">
+        <div className="panel-header">
+          <div>
+            <p className="topbar-label">Editable scorecard</p>
+            <h3>{round.title}</h3>
+          </div>
+          <button className="ghost-button compact" type="button" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <div className="scorecard-editor-grid">
+          {draft.scorecard.scores.map((score, index) => (
+            <label className="score-hole" key={`${round.id}-hole-${index + 1}`}>
+              <span>Hole {index + 1}</span>
+              <small>Par {draft.scorecard.pars?.[index] ?? 4}</small>
+              <input type="number" min="1" max="12" value={score} onChange={(event) => updateScore(index, event.target.value)} />
+            </label>
+          ))}
+        </div>
+        <div className="history-meta-row">
+          <span>Total {draft.scorecard.total}</span>
+          <span>Upload {draft.scorecard.uploadLabel ?? "No upload yet"}</span>
+          {draft.statline ? <span>Over par {draft.statline.overPar > 0 ? `+${draft.statline.overPar}` : draft.statline.overPar}</span> : null}
+        </div>
+        {draft.statline ? (
+          <div className="history-meta-row">
+            <span>Best hole {draft.statline.bestHole}</span>
+            <span>Worst hole {draft.statline.worstHole}</span>
+          </div>
+        ) : null}
+        <label className="profile-span-2">
+          Uploaded scorecard reference
+          <input
+            type="text"
+            value={draft.scorecard.uploadLabel ?? ""}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                scorecard: {
+                  ...current.scorecard,
+                  uploadLabel: event.target.value
+                }
+              }))
+            }
+          />
+        </label>
+        <label className="profile-span-2">
+          Personal notes
+          <textarea
+            rows="3"
+            value={draft.personalNotes ?? ""}
+            onChange={(event) => setDraft((current) => ({ ...current, personalNotes: event.target.value }))}
+          />
+        </label>
+        <button className="primary-button" type="button" onClick={handleSave}>
+          Save scorecard
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
   return (
     <section className="match-panel">
@@ -550,7 +712,7 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
   );
 }
 
-function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner, onRebookRound }) {
+function RoundHistoryPanel({ rounds, onOpenRound, onReInvitePartner, onRebookRound }) {
   return (
     <section className="history-panel">
       <div className="panel-header">
@@ -582,8 +744,8 @@ function RoundHistoryPanel({ rounds, onSaveScorecard, onReInvitePartner, onReboo
                 <strong>{round.scorecard.total}</strong>
                 <span>{round.scorecard.holes}-hole total</span>
               </div>
-              <button className="ghost-button compact" type="button" onClick={() => onSaveScorecard(round.id, round.scorecard.scores)}>
-                Save scorecard
+              <button className="ghost-button compact" type="button" onClick={() => onOpenRound(round)}>
+                Open round
               </button>
               {round.playAgainReady ? (
                 <button className="ghost-button compact" type="button" onClick={() => onReInvitePartner(round.partnerName)}>
@@ -1124,6 +1286,7 @@ export default function MatchApp({
 }) {
   const [activeTab, setActiveTab] = useState("tee-time");
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedRound, setSelectedRound] = useState(null);
   const unreadCount = notifications.filter((item) => item.unread).length;
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
 
@@ -1336,12 +1499,15 @@ export default function MatchApp({
           ) : null}
 
           {activeTab === "history" ? (
-            <RoundHistoryPanel
-              rounds={roundHistory}
-              onSaveScorecard={onSaveScorecard}
-              onReInvitePartner={onReInvitePartner}
-              onRebookRound={onRebookRound}
-            />
+            <>
+              <StatsDashboard rounds={roundHistory} />
+              <RoundHistoryPanel
+                rounds={roundHistory}
+                onOpenRound={setSelectedRound}
+                onReInvitePartner={onReInvitePartner}
+                onRebookRound={onRebookRound}
+              />
+            </>
           ) : null}
 
           {activeTab === "courses" ? <CoursePagesPanel courses={courses} /> : null}
@@ -1362,6 +1528,7 @@ export default function MatchApp({
       </main>
 
       <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
+      <ScorecardEditorModal round={selectedRound} onClose={() => setSelectedRound(null)} onSave={onSaveScorecard} />
     </div>
   );
 }

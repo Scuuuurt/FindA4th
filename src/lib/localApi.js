@@ -300,6 +300,10 @@ function buildInvites(userState) {
   return clone(userState.invites ?? []);
 }
 
+function scorecardTotal(scores) {
+  return scores.reduce((sum, value) => sum + (Number(value) || 0), 0);
+}
+
 function buildTrustProfile(userState, profile) {
   const rounds = (userState.roundHistory ?? []).filter(
     (round) => round.partnerId === profile.id || round.partnerName === profile.name
@@ -653,6 +657,8 @@ export const localApi = {
     target.status = "completed";
 
     const profile = profiles.find((entry) => entry.id === target.profileId);
+    const pars = Array.from({ length: userState.teeTime.holes }, (_, index) => [4, 4, 3, 5][index % 4]);
+    const scores = Array.from({ length: userState.teeTime.holes }, () => 4);
     userState.roundHistory.unshift({
       id: createToken(),
       matchId,
@@ -669,8 +675,15 @@ export const localApi = {
       note: normalized.note || "Round rated and saved from the match workspace.",
       scorecard: {
         holes: userState.teeTime.holes,
-        scores: Array.from({ length: userState.teeTime.holes }, () => 4),
-        total: userState.teeTime.holes === 18 ? 72 : 36
+        pars,
+        scores,
+        total: scorecardTotal(scores),
+        uploadLabel: "No upload yet"
+      },
+      statline: {
+        overPar: scorecardTotal(scores) - pars.reduce((sum, value) => sum + value, 0),
+        bestHole: Math.min(...scores),
+        worstHole: Math.max(...scores)
       },
       confirmation: clone(target.confirmation ?? defaultConfirmation(userState.teeTime)),
       playAgainReady: normalized.wouldPlayAgain
@@ -822,13 +835,24 @@ export const localApi = {
     const userState = requireUser(this.token);
     userState.roundHistory = userState.roundHistory.map((round) => {
       if (round.id !== roundId) return round;
-      const safeScores = scores.map((value) => Number(value) || 0);
+      const nextCard = Array.isArray(scores) ? { scores } : scores;
+      const safeScores = (nextCard.scores ?? []).map((value) => Number(value) || 0);
       return {
         ...round,
+        personalNotes: nextCard.personalNotes ?? round.personalNotes ?? "",
         scorecard: {
           ...round.scorecard,
+          pars: nextCard.pars ?? round.scorecard.pars ?? Array.from({ length: safeScores.length }, () => 4),
           scores: safeScores,
-          total: safeScores.reduce((sum, value) => sum + value, 0)
+          total: scorecardTotal(safeScores),
+          uploadLabel: nextCard.uploadLabel ?? round.scorecard.uploadLabel ?? "No upload yet"
+        },
+        statline: {
+          overPar:
+            scorecardTotal(safeScores) -
+            (nextCard.pars ?? round.scorecard.pars ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0),
+          bestHole: Math.min(...safeScores),
+          worstHole: Math.max(...safeScores)
         }
       };
     });

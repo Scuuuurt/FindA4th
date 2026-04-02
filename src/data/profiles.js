@@ -469,8 +469,10 @@ export const roundHistorySeed = [
     note: "Great pace, strong fit, easy to rebook.",
     scorecard: {
       holes: 9,
+      pars: [5, 4, 4, 4, 4, 3, 5, 4, 4],
       scores: [5, 4, 4, 5, 4, 3, 5, 4, 4],
-      total: 38
+      total: 38,
+      uploadLabel: "Pebble Ridge card photo.jpg"
     },
     confirmation: {
       walkOrCart: "Walking",
@@ -478,6 +480,7 @@ export const roundHistorySeed = [
       meetingSpot: "Putting green",
       confirmedByBoth: true
     },
+    personalNotes: "Jordan was a great fit for a focused morning round and was ready on the first tee.",
     playAgainReady: true
   },
   {
@@ -492,8 +495,10 @@ export const roundHistorySeed = [
     note: "Fun group, slightly slower on the back nine.",
     scorecard: {
       holes: 18,
+      pars: [5, 4, 4, 4, 5, 3, 5, 4, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
       scores: [5, 4, 6, 4, 5, 3, 5, 5, 4, 4, 5, 4, 4, 5, 3, 5, 5, 4],
-      total: 80
+      total: 80,
+      uploadLabel: "Harbor Dunes visitor scorecard.png"
     },
     confirmation: {
       walkOrCart: "Cart",
@@ -501,6 +506,7 @@ export const roundHistorySeed = [
       meetingSpot: "Main clubhouse",
       confirmedByBoth: true
     },
+    personalNotes: "Would book with them again, but I would nudge the pace expectations earlier.",
     playAgainReady: true
   }
 ];
