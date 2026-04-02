@@ -561,6 +561,186 @@ function StatsDashboard({ rounds }) {
   );
 }
 
+function buildDashboardData(rounds, user, previousPartners) {
+  const recentRounds = [...rounds].slice(0, 4);
+  const split = rounds.reduce(
+    (accumulator, round) => {
+      const key = round.scorecard?.holes === 9 ? "nine" : "eighteen";
+      accumulator[key].count += 1;
+      accumulator[key].total += round.scorecard?.total ?? 0;
+      return accumulator;
+    },
+    {
+      nine: { count: 0, total: 0 },
+      eighteen: { count: 0, total: 0 }
+    }
+  );
+
+  const partnerCounts = rounds.reduce((accumulator, round) => {
+    accumulator[round.partnerName] = (accumulator[round.partnerName] ?? 0) + 1;
+    return accumulator;
+  }, {});
+
+  const mostFrequentPartner =
+    Object.entries(partnerCounts).sort((left, right) => right[1] - left[1])[0]?.[0] ?? "No partner data yet";
+  const bestRatedRound = [...rounds].sort((left, right) => (right.rating ?? 0) - (left.rating ?? 0))[0] ?? null;
+  const trustedPartner =
+    [...previousPartners].sort(
+      (left, right) => (right.trustProfile?.wouldPlayAgainRate ?? 0) - (left.trustProfile?.wouldPlayAgainRate ?? 0)
+    )[0] ?? null;
+
+  const averageOverPar =
+    rounds.length > 0
+      ? rounds.reduce((sum, round) => sum + (round.statline?.overPar ?? 0), 0) / rounds.length
+      : 0;
+  const recentOverPar =
+    recentRounds.length > 0
+      ? recentRounds.reduce((sum, round) => sum + (round.statline?.overPar ?? 0), 0) / recentRounds.length
+      : averageOverPar;
+  const handicapDelta = Number(((recentOverPar - averageOverPar) / 8).toFixed(1));
+
+  return {
+    scoringTrend: recentRounds.map((round) => ({
+      label: round.dateLabel,
+      value: round.scorecard?.total ?? 0
+    })),
+    overParTrend: recentRounds.map((round) => ({
+      label: round.dateLabel,
+      value: round.statline?.overPar ?? 0
+    })),
+    split,
+    mostFrequentPartner,
+    bestRatedRound,
+    trustedPartner,
+    handicapNow: user.handicap,
+    handicapDelta,
+    handicapDirection:
+      handicapDelta < 0 ? "Trending down" : handicapDelta > 0 ? "Trending up" : "Holding steady"
+  };
+}
+
+function TrendBars({ items, formatter }) {
+  const max = Math.max(...items.map((item) => Math.abs(item.value)), 1);
+
+  return (
+    <div className="trend-list">
+      {items.map((item) => (
+        <article className="trend-item" key={`${item.label}-${item.value}`}>
+          <div className="trend-copy">
+            <strong>{formatter(item.value)}</strong>
+            <span>{item.label}</span>
+          </div>
+          <div className="trend-bar-rail">
+            <div className="trend-bar-fill" style={{ width: `${Math.max(18, (Math.abs(item.value) / max) * 100)}%` }} />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PlayerDashboard({ rounds, user, previousPartners }) {
+  const data = buildDashboardData(rounds, user, previousPartners);
+
+  return (
+    <section className="dashboard-shell">
+      <StatsDashboard rounds={rounds} />
+
+      <div className="dashboard-grid">
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Handicap tracking</p>
+              <h3>Current form</h3>
+            </div>
+            <div className="panel-status">{data.handicapDirection}</div>
+          </div>
+          <div className="stats-grid compact">
+            <article>
+              <strong>{Number(user.handicap).toFixed(1)}</strong>
+              <span>Current handicap</span>
+            </article>
+            <article>
+              <strong>{data.handicapDelta > 0 ? `+${data.handicapDelta}` : data.handicapDelta}</strong>
+              <span>Recent trend</span>
+            </article>
+          </div>
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Scoring trend</p>
+              <h3>Recent totals</h3>
+            </div>
+          </div>
+          <TrendBars items={data.scoringTrend} formatter={(value) => value} />
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Over par</p>
+              <h3>How rounds are trending</h3>
+            </div>
+          </div>
+          <TrendBars items={data.overParTrend} formatter={(value) => (value > 0 ? `+${value}` : value)} />
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">9 vs 18</p>
+              <h3>Round split</h3>
+            </div>
+          </div>
+          <div className="stats-grid compact">
+            <article>
+              <strong>
+                {data.split.nine.count
+                  ? (data.split.nine.total / data.split.nine.count).toFixed(1)
+                  : "-"}
+              </strong>
+              <span>Average 9-hole score</span>
+            </article>
+            <article>
+              <strong>
+                {data.split.eighteen.count
+                  ? (data.split.eighteen.total / data.split.eighteen.count).toFixed(1)
+                  : "-"}
+              </strong>
+              <span>Average 18-hole score</span>
+            </article>
+          </div>
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Partner insights</p>
+              <h3>Who you play best with</h3>
+            </div>
+          </div>
+          <div className="insight-list">
+            <article>
+              <strong>{data.mostFrequentPartner}</strong>
+              <span>Most frequent partner</span>
+            </article>
+            <article>
+              <strong>{data.bestRatedRound?.partnerName ?? "No completed ratings yet"}</strong>
+              <span>Best-rated recent round</span>
+            </article>
+            <article>
+              <strong>{data.trustedPartner?.profile?.name ?? "No trusted partner yet"}</strong>
+              <span>Top rebook suggestion</span>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 function ScorecardEditorModal({ round, onClose, onSave }) {
   const [draft, setDraft] = useState(round);
 
@@ -1403,6 +1583,7 @@ export default function MatchApp({
 
           <section className="view-tabs" aria-label="Primary app views">
             {[
+              ["dashboard", "Dashboard"],
               ["tee-time", "Post a tee time"],
               ["discovery", "Discovery"],
               ["partners", "Previous partners"],
@@ -1419,6 +1600,10 @@ export default function MatchApp({
               </button>
             ))}
           </section>
+
+          {activeTab === "dashboard" ? (
+            <PlayerDashboard rounds={roundHistory} user={user} previousPartners={previousPartners} />
+          ) : null}
 
           {activeTab === "tee-time" ? (
             <>
