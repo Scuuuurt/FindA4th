@@ -38,6 +38,8 @@ function DayPicker({ value, onChange }) {
 }
 
 function NotificationCenter({ notifications, onRead }) {
+  const unread = notifications.filter((item) => item.unread).length;
+
   return (
     <section className="notification-panel">
       <div className="panel-header">
@@ -45,7 +47,7 @@ function NotificationCenter({ notifications, onRead }) {
           <p className="topbar-label">Notifications</p>
           <h3>Live demo activity</h3>
         </div>
-        <div className="panel-status">{notifications.filter((item) => item.unread).length} unread</div>
+        <div className="panel-status">{unread} unread</div>
       </div>
       <div className="notification-list">
         {notifications.map((notification) => (
@@ -54,7 +56,10 @@ function NotificationCenter({ notifications, onRead }) {
             className={`notification-item ${notification.unread ? "unread" : ""}`.trim()}
           >
             <div className="notification-copy">
-              <strong>{notification.title}</strong>
+              <div className="notification-headline-row">
+                <strong>{notification.title}</strong>
+                <span className="tag verified">{notification.type}</span>
+              </div>
               <p>{notification.body}</p>
             </div>
             <div className="notification-actions">
@@ -598,6 +603,16 @@ function buildDashboardData(rounds, user, previousPartners) {
       ? recentRounds.reduce((sum, round) => sum + (round.statline?.overPar ?? 0), 0) / recentRounds.length
       : averageOverPar;
   const handicapDelta = Number(((recentOverPar - averageOverPar) / 8).toFixed(1));
+  const favoritePartners = previousPartners.filter((entry) => entry.isFavorite).slice(0, 3);
+  const achievements = [
+    rounds.length >= 3 ? "Three logged rounds" : null,
+    rounds.some((round) => (round.statline?.overPar ?? 0) <= 0) ? "Even-par-or-better day" : null,
+    previousPartners.some((entry) => entry.trustProfile?.wouldPlayAgainRate >= 100) ? "Perfect chemistry pairing" : null,
+    user.handicap <= 12 ? "Low-teen handicap profile" : null
+  ].filter(Boolean);
+  const personalitySummary = `${user.seriousness} golfer who prefers ${user.socialStyle.toLowerCase()} rounds, ${
+    user.gameStyle.toLowerCase()
+  }, and ${user.mobilityPreference === "either" ? "either walking or carting" : user.mobilityPreference}.`;
 
   return {
     scoringTrend: recentRounds.map((round) => ({
@@ -615,7 +630,10 @@ function buildDashboardData(rounds, user, previousPartners) {
     handicapNow: user.handicap,
     handicapDelta,
     handicapDirection:
-      handicapDelta < 0 ? "Trending down" : handicapDelta > 0 ? "Trending up" : "Holding steady"
+      handicapDelta < 0 ? "Trending down" : handicapDelta > 0 ? "Trending up" : "Holding steady",
+    favoritePartners,
+    achievements,
+    personalitySummary
   };
 }
 
@@ -736,6 +754,112 @@ function PlayerDashboard({ rounds, user, previousPartners }) {
             </article>
           </div>
         </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Favorite partners</p>
+              <h3>Your best rebook options</h3>
+            </div>
+          </div>
+          <div className="insight-list">
+            {data.favoritePartners.length ? (
+              data.favoritePartners.map((entry) => (
+                <article key={entry.id}>
+                  <strong>{entry.profile.name}</strong>
+                  <span>{entry.trustProfile?.overall} overall · {entry.trustProfile?.wouldPlayAgainRate}% play-again rate</span>
+                </article>
+              ))
+            ) : (
+              <article>
+                <strong>No favorites yet</strong>
+                <span>Favorite a few playing partners and they’ll show up here.</span>
+              </article>
+            )}
+          </div>
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Achievements</p>
+              <h3>Momentum and milestones</h3>
+            </div>
+          </div>
+          <div className="achievement-list">
+            {data.achievements.map((item) => (
+              <article className="achievement-item" key={item}>
+                <strong>{item}</strong>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-header">
+            <div>
+              <p className="topbar-label">Golf personality</p>
+              <h3>How FindA4th would describe you</h3>
+            </div>
+          </div>
+          <div className="insight-list">
+            <article>
+              <strong>{user.homeCourse || "No course selected"}</strong>
+              <span>{data.personalitySummary}</span>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function ListingsBoard({ deck, onOpenProfile, onSwipe }) {
+  return (
+    <section className="listings-board">
+      <div className="panel-header">
+        <div>
+          <p className="topbar-label">Browse listings</p>
+          <h3>Marketplace-style tee time inventory</h3>
+        </div>
+        <div className="panel-status">{deck.length} live demo listings</div>
+      </div>
+      <div className="listing-grid">
+        {deck.map((profile) => (
+          <article className="listing-card" key={profile.id}>
+            <div className="listing-image" style={{ backgroundImage: profile.image }} />
+            <div className="listing-copy">
+              <div className="notification-headline-row">
+                <strong>{profile.name}</strong>
+                <span className="tag verified">{profile.compatibility?.score ?? 0}% fit</span>
+              </div>
+              <p>{profile.course} · {profile.teeTime}</p>
+              <div className="history-meta-row">
+                <span>{profile.type}</span>
+                <span>{profile.handicap}</span>
+                <span>{profile.slots} spot{profile.slots > 1 ? "s" : ""}</span>
+              </div>
+              <div className="tag-row">
+                {(profile.compatibility?.reasons ?? []).map((reason) => (
+                  <span className="tag" key={reason}>
+                    {reason}
+                  </span>
+                ))}
+              </div>
+              <div className="invite-actions-row">
+                <button className="ghost-button compact" type="button" onClick={() => onOpenProfile(profile)}>
+                  View
+                </button>
+                <button className="ghost-button compact" type="button" onClick={() => onSwipe("left")}>
+                  Pass
+                </button>
+                <button className="match-action" type="button" onClick={() => onSwipe("right")}>
+                  Match
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -1467,6 +1591,7 @@ export default function MatchApp({
   const [activeTab, setActiveTab] = useState("tee-time");
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedRound, setSelectedRound] = useState(null);
+  const [discoveryMode, setDiscoveryMode] = useState("swipe");
   const unreadCount = notifications.filter((item) => item.unread).length;
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
 
@@ -1661,16 +1786,39 @@ export default function MatchApp({
 
               <DiscoveryContextPanel teeTime={teeTime} user={user} />
 
-              <SwipeDeck deck={deck} onSwipe={onSwipe} onOpenProfile={setSelectedProfile} />
+              <div className="segmented-control discovery-toggle">
+                <button
+                  className={`segment ${discoveryMode === "swipe" ? "active" : ""}`.trim()}
+                  type="button"
+                  onClick={() => setDiscoveryMode("swipe")}
+                >
+                  Swipe mode
+                </button>
+                <button
+                  className={`segment ${discoveryMode === "browse" ? "active" : ""}`.trim()}
+                  type="button"
+                  onClick={() => setDiscoveryMode("browse")}
+                >
+                  Browse listings
+                </button>
+              </div>
 
-              <section className="actions">
-                <button className="swipe-button dismiss" type="button" onClick={() => onSwipe("left")}>
-                  <span>x</span>
-                </button>
-                <button className="swipe-button approve" type="button" onClick={() => onSwipe("right")}>
-                  <span>♥</span>
-                </button>
-              </section>
+              {discoveryMode === "swipe" ? (
+                <>
+                  <SwipeDeck deck={deck} onSwipe={onSwipe} onOpenProfile={setSelectedProfile} />
+
+                  <section className="actions">
+                    <button className="swipe-button dismiss" type="button" onClick={() => onSwipe("left")}>
+                      <span>x</span>
+                    </button>
+                    <button className="swipe-button approve" type="button" onClick={() => onSwipe("right")}>
+                      <span>♥</span>
+                    </button>
+                  </section>
+                </>
+              ) : (
+                <ListingsBoard deck={deck} onOpenProfile={setSelectedProfile} onSwipe={onSwipe} />
+              )}
             </>
           ) : null}
 
