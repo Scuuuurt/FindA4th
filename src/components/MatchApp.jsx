@@ -1832,6 +1832,10 @@ export default function MatchApp({
     () => FILTERS.filter((value) => value !== "single" && value !== "group"),
     []
   );
+  const filteredMatches = useMemo(
+    () => matches.filter((match) => (marketWindow === "social" ? match.mode === "social" : match.mode !== "social")),
+    [marketWindow, matches]
+  );
 
   useEffect(() => {
     if (!hasSavedRounds && SECONDARY_TABS.some(([value]) => value === activeTab)) {
@@ -1972,26 +1976,6 @@ export default function MatchApp({
       <main className={`phone-frame lane-frame lane-frame-${marketWindow}`.trim()}>
         <div className="phone-glow"></div>
         <section className={`app-card app-card-redesign lane-app-card lane-app-card-${marketWindow}`.trim()}>
-          <header className="topbar">
-            <div>
-              <p className="topbar-label">FindA4th</p>
-              <h2>{marketWindow === "groups" ? "Complete the round" : "Meet golf friends"}</h2>
-              <p className="topbar-subtitle">
-                {marketWindow === "groups"
-                  ? "Active tee times are for rounds that are already posted and need golfers now."
-                  : "Social is completely separate from live tee times. Use it only to meet golfers you may want to play with later."}
-              </p>
-            </div>
-            <div className="topbar-actions">
-                <button className="ghost-button" type="button" onClick={onRefresh}>
-                {marketWindow === "social" ? "Refresh golfers" : "Refresh deck"}
-                </button>
-              <button className="ghost-button" type="button" onClick={onLogout}>
-                Log out
-              </button>
-            </div>
-          </header>
-
           <MarketWindowSwitcher
             marketWindow={marketWindow}
             onChange={setMarketWindow}
@@ -1999,36 +1983,94 @@ export default function MatchApp({
             socialCount={socialDeck.length}
           />
 
-          <section className="view-tabs" aria-label="Primary app views">
-            {primaryTabs.map(([value, label]) => (
-              <button
-                key={value}
-                className={`view-tab ${activeTab === value ? "active" : ""}`.trim()}
-                type="button"
-                onClick={() => setActiveTab(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </section>
+          {marketWindow === "groups" ? (
+            <>
+              <header className="topbar">
+                <div>
+                  <p className="topbar-label">FindA4th</p>
+                  <h2>Complete the round</h2>
+                  <p className="topbar-subtitle">
+                    Active tee times are for rounds that are already posted and need golfers now.
+                  </p>
+                </div>
+                <div className="topbar-actions">
+                  <button className="ghost-button" type="button" onClick={onRefresh}>
+                    Refresh deck
+                  </button>
+                  <button className="ghost-button" type="button" onClick={onLogout}>
+                    Log out
+                  </button>
+                </div>
+              </header>
 
-          {secondaryTabs.length ? (
-            <section className="secondary-tabs" aria-label="Additional app views">
-              <span className="secondary-tabs-label">Unlocked after a completed round</span>
-              <div className="secondary-tabs-row">
-                {secondaryTabs.map(([value, label]) => (
+              <section className="view-tabs" aria-label="Primary app views">
+                {primaryTabs.map(([value, label]) => (
                   <button
                     key={value}
-                    className={`view-tab secondary ${activeTab === value ? "active" : ""}`.trim()}
+                    className={`view-tab ${activeTab === value ? "active" : ""}`.trim()}
                     type="button"
                     onClick={() => setActiveTab(value)}
                   >
                     {label}
                   </button>
                 ))}
-              </div>
-            </section>
-          ) : null}
+              </section>
+
+              {secondaryTabs.length ? (
+                <section className="secondary-tabs" aria-label="Additional app views">
+                  <span className="secondary-tabs-label">Unlocked after a completed round</span>
+                  <div className="secondary-tabs-row">
+                    {secondaryTabs.map(([value, label]) => (
+                      <button
+                        key={value}
+                        className={`view-tab secondary ${activeTab === value ? "active" : ""}`.trim()}
+                        type="button"
+                        onClick={() => setActiveTab(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <section className="social-shell-header">
+                <div>
+                  <p className="topbar-label">FindA4th Social</p>
+                  <h2>Golf friends</h2>
+                  <p className="topbar-subtitle">
+                    A separate social space for meeting golfers you may want to play with later. No live tee times here.
+                  </p>
+                </div>
+                <div className="topbar-actions">
+                  <button className="ghost-button" type="button" onClick={onRefresh}>
+                    Refresh golfers
+                  </button>
+                  <button className="ghost-button" type="button" onClick={onLogout}>
+                    Log out
+                  </button>
+                </div>
+              </section>
+
+              <section className="social-shell-nav" aria-label="Social app views">
+                {primaryTabs.map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={`social-shell-tab ${activeTab === value ? "active" : ""}`.trim()}
+                    type="button"
+                    onClick={() => setActiveTab(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <button className={`social-shell-tab ${activeTab === "connections" ? "active" : ""}`.trim()} type="button" onClick={() => setActiveTab("connections")}>
+                  Connections
+                </button>
+              </section>
+            </>
+          )}
 
           {marketWindow === "groups" && activeTab === "tee-time" ? (
             <>
@@ -2229,13 +2271,24 @@ export default function MatchApp({
             )
           ) : null}
 
-          <MatchList
-            matches={matches.filter((match) => (marketWindow === "social" ? match.mode === "social" : match.mode !== "social"))}
-            activeMatchId={activeMatch?.id}
-            onOpenMatch={onOpenMatch}
-            onCancelMatch={onCancelMatch}
-            marketWindow={marketWindow}
-          />
+          {marketWindow === "social" && activeTab === "connections" ? (
+            <MatchList
+              matches={filteredMatches}
+              activeMatchId={activeMatch?.id}
+              onOpenMatch={onOpenMatch}
+              onCancelMatch={onCancelMatch}
+              marketWindow={marketWindow}
+            />
+          ) : null}
+          {marketWindow === "groups" ? (
+            <MatchList
+              matches={filteredMatches}
+              activeMatchId={activeMatch?.id}
+              onOpenMatch={onOpenMatch}
+              onCancelMatch={onCancelMatch}
+              marketWindow={marketWindow}
+            />
+          ) : null}
           <MatchWorkspace
             activeMatch={activeMatch}
             marketWindow={marketWindow}

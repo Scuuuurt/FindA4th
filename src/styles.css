@@ -996,6 +996,46 @@ input[type="range"] {
   gap: 10px;
 }
 
+.social-shell-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 4px 14px;
+  margin: -4px -2px 4px;
+}
+
+.social-shell-header h2 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.45rem;
+  letter-spacing: -0.02em;
+  color: var(--green-deep);
+}
+
+.social-shell-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.social-shell-tab {
+  padding: 13px 16px;
+  border-radius: 999px;
+  background: rgba(255, 254, 249, 0.88);
+  color: var(--muted);
+  border: 1px solid rgba(16, 34, 23, 0.07);
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(16, 31, 21, 0.04);
+}
+
+.social-shell-tab.active {
+  background: linear-gradient(135deg, rgba(18, 48, 43, 0.96), rgba(59, 124, 107, 0.9));
+  color: white;
+}
+
 .intro-grid-flow {
   align-items: start;
 }
