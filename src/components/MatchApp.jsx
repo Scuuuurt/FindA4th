@@ -990,9 +990,10 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
               <p>{profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}</p>
               <div className="history-meta-row">
                 <span>{profile.surfaceType ?? profile.type}</span>
-                <span>{profile.handicap}</span>
+                <span>{marketWindow === "social" ? profile.socialStyle : profile.handicap}</span>
                 <span>{profile.surfaceBadge ?? `${profile.slots} spot${profile.slots > 1 ? "s" : ""}`}</span>
               </div>
+              {marketWindow === "social" ? <p>{profile.bio}</p> : null}
               <div className="tag-row">
                 {(profile.compatibility?.reasons ?? []).map((reason) => (
                   <span className="tag" key={reason}>
@@ -1369,14 +1370,43 @@ function ProfileModal({ profile, onClose }) {
               {profile.verifiedGolfer ? <span className="tag verified">Verified golfer</span> : null}
               {profile.beginnerFriendly ? <span className="tag">Beginner-friendly</span> : null}
             </div>
-            <div className="detail-grid">
-              <div className="detail-pill">Compatibility: {profile.compatibility?.score ?? 0}%</div>
-              <div className="detail-pill">Style: {profile.socialStyle}</div>
-              <div className="detail-pill">Game: {profile.gameStyle}</div>
-              <div className="detail-pill">Score focus: {profile.seriousness}</div>
-              <div className="detail-pill">No-shows: {profile.noShowCount}</div>
-              <div className="detail-pill">Cancellation rate: {profile.cancellationRate}</div>
-            </div>
+            {profile.marketWindow === "social" ? (
+              <div className="social-modal-grid">
+                <div className="social-friend-card">
+                  <strong>Usual days</strong>
+                  <span>{profile.availableDays?.join(" / ") || "Flexible"}</span>
+                </div>
+                <div className="social-friend-card">
+                  <strong>Typical window</strong>
+                  <span>{profile.availabilityWindow}</span>
+                </div>
+                <div className="social-friend-card">
+                  <strong>Round style</strong>
+                  <span>{profile.vibe} · {profile.socialStyle}</span>
+                </div>
+                <div className="social-friend-card">
+                  <strong>Favorite setup</strong>
+                  <span>{labelize(profile.mobilityPreference)} · {labelize(profile.musicPreference)}</span>
+                </div>
+                <div className="social-friend-card">
+                  <strong>Handicap</strong>
+                  <span>{profile.handicap}</span>
+                </div>
+                <div className="social-friend-card">
+                  <strong>Trust</strong>
+                  <span>{profile.reliabilityRating?.toFixed(1) ?? "4.8"} rating · {profile.completedRounds} rounds</span>
+                </div>
+              </div>
+            ) : (
+              <div className="detail-grid">
+                <div className="detail-pill">Compatibility: {profile.compatibility?.score ?? 0}%</div>
+                <div className="detail-pill">Style: {profile.socialStyle}</div>
+                <div className="detail-pill">Game: {profile.gameStyle}</div>
+                <div className="detail-pill">Score focus: {profile.seriousness}</div>
+                <div className="detail-pill">No-shows: {profile.noShowCount}</div>
+                <div className="detail-pill">Cancellation rate: {profile.cancellationRate}</div>
+              </div>
+            )}
           </div>
         </div>
       </section>

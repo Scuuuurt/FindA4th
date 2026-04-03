@@ -50,27 +50,48 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
               {profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}
             </p>
           </div>
-          <div className="profile-handicap">{profile.handicap}</div>
+          <div className="profile-handicap">{marketWindow === "social" ? profile.socialStyle : profile.handicap}</div>
         </div>
 
         <p className="profile-bio">{profile.bio}</p>
 
-        <div className="detail-grid">
-          <div className="detail-pill">{profile.fit}</div>
-          <div className="detail-pill">{profile.distanceMiles} miles away</div>
-          <div className="detail-pill">Home: {profile.homeCourse}</div>
-          <div className="detail-pill">Vibe: {profile.vibe}</div>
-          <div className="detail-pill">Pace: {profile.pace}</div>
-          <div className="detail-pill">Gender: {profile.gender ?? "Prefer not to say"}</div>
-          <div className="detail-pill">Move: {labelize(profile.mobilityPreference)}</div>
-          <div className="detail-pill">Music: {labelize(profile.musicPreference)}</div>
-          <div className="detail-pill">Window: {profile.availabilityWindow}</div>
-          <div className="detail-pill">
-            Rating: {profile.reliabilityRating?.toFixed(1) ?? "4.8"} ({profile.completedRounds} rounds)
+        {marketWindow === "social" ? (
+          <div className="social-friend-grid">
+            <div className="social-friend-card">
+              <strong>Usually plays</strong>
+              <span>{profile.availableDays?.join(" / ") || "Flexible"} · {profile.availabilityWindow}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Home base</strong>
+              <span>{profile.homeCourse}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Round vibe</strong>
+              <span>{profile.vibe} · {profile.socialStyle}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Good to know</strong>
+              <span>{labelize(profile.mobilityPreference)} · {labelize(profile.musicPreference)}</span>
+            </div>
           </div>
-          <div className="detail-pill">Score focus: {profile.seriousness}</div>
-          <div className="detail-pill">Game: {profile.gameStyle}</div>
-        </div>
+        ) : (
+          <div className="detail-grid">
+            <div className="detail-pill">{profile.fit}</div>
+            <div className="detail-pill">{profile.distanceMiles} miles away</div>
+            <div className="detail-pill">Home: {profile.homeCourse}</div>
+            <div className="detail-pill">Vibe: {profile.vibe}</div>
+            <div className="detail-pill">Pace: {profile.pace}</div>
+            <div className="detail-pill">Gender: {profile.gender ?? "Prefer not to say"}</div>
+            <div className="detail-pill">Move: {labelize(profile.mobilityPreference)}</div>
+            <div className="detail-pill">Music: {labelize(profile.musicPreference)}</div>
+            <div className="detail-pill">Window: {profile.availabilityWindow}</div>
+            <div className="detail-pill">
+              Rating: {profile.reliabilityRating?.toFixed(1) ?? "4.8"} ({profile.completedRounds} rounds)
+            </div>
+            <div className="detail-pill">Score focus: {profile.seriousness}</div>
+            <div className="detail-pill">Game: {profile.gameStyle}</div>
+          </div>
+        )}
 
         {profile.compatibility?.reasons?.length ? (
           <div className="tag-row">
@@ -97,15 +118,15 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
         <div className="card-footer">
           <div>
             <strong>{profile.reliabilityRating?.toFixed(1) ?? "4.8"}</strong>
-            <span>Reliability</span>
+            <span>{marketWindow === "social" ? "Friend fit" : "Reliability"}</span>
           </div>
           <div>
-            <strong>{profile.completedRounds}</strong>
-            <span>Rounds played</span>
+            <strong>{marketWindow === "social" ? profile.distanceMiles : profile.completedRounds}</strong>
+            <span>{marketWindow === "social" ? "Miles away" : "Rounds played"}</span>
           </div>
           <div>
-            <strong>{profile.availabilityWindow}</strong>
-            <span>Typical window</span>
+            <strong>{marketWindow === "social" ? profile.homeCourse : profile.availabilityWindow}</strong>
+            <span>{marketWindow === "social" ? "Home course" : "Typical window"}</span>
           </div>
         </div>
 

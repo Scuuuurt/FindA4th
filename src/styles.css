@@ -1225,6 +1225,18 @@ input[type="range"] {
   background: rgba(18, 48, 43, 0.5);
 }
 
+.lane-social .profile-meta {
+  font-size: 0.95rem;
+}
+
+.lane-social .profile-bio {
+  font-size: 1rem;
+}
+
+.lane-social .profile-handicap {
+  min-width: 96px;
+}
+
 .profile-card.is-next {
   transform: scale(0.96) translateY(12px);
   opacity: 0.85;
@@ -1350,6 +1362,39 @@ input[type="range"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 18px;
+}
+
+.social-friend-grid,
+.social-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.social-friend-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(16, 34, 23, 0.08);
+}
+
+.social-friend-card strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green-strong);
+}
+
+.social-friend-card span {
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.lane-social .social-friend-card {
+  background: rgba(252, 255, 253, 0.82);
 }
 
 .detail-pill {
