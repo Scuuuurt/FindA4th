@@ -1810,7 +1810,7 @@ export default function MatchApp({
   const unreadCount = notifications.filter((item) => item.unread).length;
   const featuredCourse = useMemo(() => courses[0] ?? null, [courses]);
   const hasSavedRounds = roundHistory.length > 0;
-  const secondaryTabs = hasSavedRounds ? SECONDARY_TABS : [];
+  const secondaryTabs = marketWindow === "groups" && hasSavedRounds ? SECONDARY_TABS : [];
   const groupDeck = useMemo(() => buildWindowDeck(deck, "groups"), [deck]);
   const socialDeck = useMemo(() => buildWindowDeck(deck, "social"), [deck]);
   const windowDeck = useMemo(() => buildWindowDeck(deck, marketWindow), [deck, marketWindow]);
@@ -1975,11 +1975,11 @@ export default function MatchApp({
           <header className="topbar">
             <div>
               <p className="topbar-label">FindA4th</p>
-              <h2>Complete the round</h2>
+              <h2>{marketWindow === "groups" ? "Complete the round" : "Meet golf friends"}</h2>
               <p className="topbar-subtitle">
                 {marketWindow === "groups"
                   ? "Active tee times are for rounds that are already posted and need golfers now."
-                  : "Social is for golfers looking to meet people first and figure out a round later."}
+                  : "Social is completely separate from live tee times. Use it only to meet golfers you may want to play with later."}
               </p>
             </div>
             <div className="topbar-actions">
@@ -2080,6 +2080,17 @@ export default function MatchApp({
 
           {activeTab === "discovery" ? (
             <>
+              {marketWindow === "social" ? (
+                <section className="social-mode-banner">
+                  <p className="topbar-label">Social mode</p>
+                  <h3>This area is only for meeting golfers, not browsing open tee times.</h3>
+                  <p className="posting-lead">
+                    Think of this like a golf-friends discovery lane. Swipe or browse profiles, chat, and decide later
+                    if you want to set up a future round together.
+                  </p>
+                </section>
+              ) : null}
+
               <section className={`discovery-header-panel discovery-header-panel-${marketWindow}`.trim()}>
                 <div>
                   <p className="topbar-label">{marketWindow === "social" ? "Social discovery" : "Group discovery"}</p>

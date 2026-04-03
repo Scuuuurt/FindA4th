@@ -1010,6 +1010,35 @@ input[type="range"] {
   box-shadow: 0 18px 34px rgba(19, 33, 22, 0.06);
 }
 
+.social-mode-banner {
+  margin-top: 16px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(18, 48, 43, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(241, 214, 163, 0.16), transparent 32%),
+    linear-gradient(135deg, rgba(18, 48, 43, 0.98), rgba(48, 103, 91, 0.92));
+  color: white;
+  box-shadow: 0 18px 34px rgba(19, 33, 22, 0.1);
+}
+
+.social-mode-banner .topbar-label,
+.social-mode-banner h3,
+.social-mode-banner .posting-lead {
+  color: white;
+}
+
+.social-mode-banner h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.9rem;
+}
+
+.social-mode-banner .posting-lead {
+  margin-top: 10px;
+  opacity: 0.82;
+}
+
 .lane-social .flow-guide-panel,
 .lane-social .discovery-header-panel,
 .lane-social .market-window-switcher,
