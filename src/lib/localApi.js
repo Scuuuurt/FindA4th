@@ -540,9 +540,11 @@ export const localApi = {
     userState.swipes.set(topProfile.id, direction);
     if (direction === "right" && !userState.matches.some((match) => match.profileId === topProfile.id)) {
       const matchId = `match-${createToken()}`;
+      const mode = topProfile.type === "Single" ? "social" : "groups";
       userState.matches.unshift({
         id: matchId,
         profileId: topProfile.id,
+        mode,
         status: "matched",
         confirmation: defaultConfirmation(userState.teeTime),
         ratings: {
@@ -557,14 +559,20 @@ export const localApi = {
         {
           id: createToken(),
           sender: topProfile.name,
-          text: `Looks like a fit for ${topProfile.teeTime}. Want to confirm carts, green fee, and meet by the putting green 20 minutes early?`,
+          text:
+            mode === "social"
+              ? `You seem like a strong fit for a future round. Want to chat about where you usually play and find a day that works?`
+              : `Looks like a fit for ${topProfile.teeTime}. Want to confirm carts, green fee, and meet by the putting green 20 minutes early?`,
           sentAt: new Date().toISOString()
         }
       ]);
       userState.notifications.unshift({
         id: createToken(),
-        title: "New match created",
-        body: `${topProfile.name} is ready to coordinate this round.`,
+        title: mode === "social" ? "New golf friend connection" : "New match created",
+        body:
+          mode === "social"
+            ? `${topProfile.name} looks like a good golf friend fit for a future round.`
+            : `${topProfile.name} is ready to coordinate this round.`,
         timeLabel: "Just now",
         type: "match",
         unread: true
@@ -594,9 +602,11 @@ export const localApi = {
         id: createToken(),
         sender: profile.name,
         text:
-          target?.confirmation?.confirmedByBoth
-            ? `Perfect. I am locked in for ${target.confirmation.teeTime} and will see you at ${target.confirmation.meetingSpot}.`
-            : "Sounds good on my side. Send the final green fee and meeting spot and I can confirm right away.",
+          target?.mode === "social"
+            ? "Sounds good. I usually play mornings and twilight, so I am happy to figure out a future round together."
+            : target?.confirmation?.confirmedByBoth
+              ? `Perfect. I am locked in for ${target.confirmation.teeTime} and will see you at ${target.confirmation.meetingSpot}.`
+              : "Sounds good on my side. Send the final green fee and meeting spot and I can confirm right away.",
         sentAt: new Date(Date.now() + 60000).toISOString()
       });
     }

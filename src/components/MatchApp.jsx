@@ -973,10 +973,10 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
     <section className="listings-board">
       <div className="panel-header">
         <div>
-          <p className="topbar-label">Browse listings</p>
+          <p className="topbar-label">{marketWindow === "social" ? "Golf friend profiles" : "Browse listings"}</p>
           <h3>{marketWindow === "social" ? "Future-round golfer connections" : "Marketplace-style tee time inventory"}</h3>
         </div>
-        <div className="panel-status">{deck.length} live demo listings</div>
+        <div className="panel-status">{deck.length} {marketWindow === "social" ? "golfers nearby" : "live demo listings"}</div>
       </div>
       <div className="listing-grid">
         {deck.map((profile) => (
@@ -1008,7 +1008,7 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
                   Pass
                 </button>
                 <button className="match-action" type="button" onClick={() => onSwipe("right", profile.id)}>
-                  Match
+                  {marketWindow === "social" ? "Connect" : "Match"}
                 </button>
               </div>
             </div>
@@ -1117,13 +1117,13 @@ function ScorecardEditorModal({ round, onClose, onSave }) {
   );
 }
 
-function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
+function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch, marketWindow }) {
   return (
     <section className="match-panel">
       <div className="match-panel-header">
         <div>
-          <p className="topbar-label">Active matches</p>
-          <h3>Golfers you clicked with</h3>
+          <p className="topbar-label">{marketWindow === "social" ? "Connections" : "Active matches"}</p>
+          <h3>{marketWindow === "social" ? "Golf friends you connected with" : "Golfers you clicked with"}</h3>
         </div>
         <span className="match-count">{matches.length}</span>
       </div>
@@ -1136,24 +1136,27 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
               <div className="match-copy">
                 <h4 className="match-name">{match.profile.name}</h4>
                 <p className="match-plan">
-                  {match.profile.course} · {match.profile.teeTime} · {match.profile.slots} slot
-                  {match.profile.slots > 1 ? "s" : ""}
+                  {match.mode === "social"
+                    ? `${match.profile.homeCourse} · ${match.profile.availabilityWindow} · ${match.profile.socialStyle}`
+                    : `${match.profile.course} · ${match.profile.teeTime} · ${match.profile.slots} slot${match.profile.slots > 1 ? "s" : ""}`}
                 </p>
                 <p className="match-meta">
-                  {match.lifecycle?.label ?? "Needs round confirmation"}
+                  {match.mode === "social" ? "Future round connection" : match.lifecycle?.label ?? "Needs round confirmation"}
                 </p>
               </div>
               <div className="match-cta-group">
                 <button className="match-action" type="button" onClick={() => onOpenMatch(match)}>
-                  Open chat
+                  {match.mode === "social" ? "Open conversation" : "Open chat"}
                 </button>
-                <button
-                  className="ghost-button compact"
-                  type="button"
-                  onClick={() => onCancelMatch(match.id, "Schedule changed")}
-                >
-                  Cancel
-                </button>
+                {match.mode === "social" ? null : (
+                  <button
+                    className="ghost-button compact"
+                    type="button"
+                    onClick={() => onCancelMatch(match.id, "Schedule changed")}
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
             </article>
           ))
@@ -1161,7 +1164,11 @@ function MatchList({ matches, activeMatchId, onOpenMatch, onCancelMatch }) {
           <article className="match-item">
             <div className="match-copy">
               <h4 className="match-name">No matches yet</h4>
-              <p className="match-plan">Post a tee time, then swipe through golfers and groups that feel like the right fit.</p>
+              <p className="match-plan">
+                {marketWindow === "social"
+                  ? "Swipe through golfers you would want to meet for future rounds, then start a conversation."
+                  : "Post a tee time, then swipe through golfers and groups that feel like the right fit."}
+              </p>
             </div>
           </article>
         )}
@@ -1379,6 +1386,7 @@ function ProfileModal({ profile, onClose }) {
 
 function MatchWorkspace({
   activeMatch,
+  marketWindow,
   messages,
   loading,
   onSendMessage,
@@ -1423,10 +1431,12 @@ function MatchWorkspace({
   if (!activeMatch) {
     return (
       <section className="chat-panel empty">
-        <p className="topbar-label">Match workspace</p>
-        <h3>Open a match to coordinate the round</h3>
+        <p className="topbar-label">{marketWindow === "social" ? "Connection workspace" : "Match workspace"}</p>
+        <h3>{marketWindow === "social" ? "Open a connection to start chatting" : "Open a match to coordinate the round"}</h3>
         <p className="chat-empty-copy">
-          The full demo story includes chat, confirmation, cancellations, trust tools, and post-round ratings.
+          {marketWindow === "social"
+            ? "This side is just for meeting golf friends and seeing if you want to plan a future round together."
+            : "The full demo story includes chat, confirmation, cancellations, trust tools, and post-round ratings."}
         </p>
       </section>
     );
@@ -1454,29 +1464,33 @@ function MatchWorkspace({
     <section className="chat-panel">
       <div className="chat-panel-header">
         <div>
-          <p className="topbar-label">Match workspace</p>
+          <p className="topbar-label">{activeMatch.mode === "social" ? "Connection workspace" : "Match workspace"}</p>
           <h3>{activeMatch.profile.name}</h3>
           <p className="chat-subtitle">
-            {activeMatch.profile.course} · {activeMatch.profile.teeTime}
+            {activeMatch.mode === "social"
+              ? `${activeMatch.profile.homeCourse} · ${activeMatch.profile.availabilityWindow} · ${activeMatch.profile.socialStyle}`
+              : `${activeMatch.profile.course} · ${activeMatch.profile.teeTime}`}
           </p>
         </div>
-        <div className="chat-pill">{activeMatch.lifecycle?.label ?? "Needs confirmation"}</div>
+        <div className="chat-pill">{activeMatch.mode === "social" ? "Future-round connection" : activeMatch.lifecycle?.label ?? "Needs confirmation"}</div>
       </div>
 
-      <div className="lifecycle-strip">
-        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "matched" ? "active" : ""}`.trim()}>
-          Matched
+      {activeMatch.mode === "social" ? null : (
+        <div className="lifecycle-strip">
+          <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "matched" ? "active" : ""}`.trim()}>
+            Matched
+          </div>
+          <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "confirmed" ? "active" : ""}`.trim()}>
+            Confirmed
+          </div>
+          <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "played" ? "active" : ""}`.trim()}>
+            Played
+          </div>
+          <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "completed" ? "active" : ""}`.trim()}>
+            Rated
+          </div>
         </div>
-        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "confirmed" ? "active" : ""}`.trim()}>
-          Confirmed
-        </div>
-        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "played" ? "active" : ""}`.trim()}>
-          Played
-        </div>
-        <div className={`lifecycle-pill ${activeMatch.lifecycle?.step === "completed" ? "active" : ""}`.trim()}>
-          Rated
-        </div>
-      </div>
+      )}
 
       <div className="trust-summary-grid">
         <div className="trust-card">
@@ -1500,6 +1514,7 @@ function MatchWorkspace({
         <span>Etiquette {activeMatch.trustProfile?.etiquette ?? 4.8}</span>
       </div>
 
+      {activeMatch.mode === "social" ? null : (
       <section className="confirmation-panel">
         <div className="panel-header">
           <div>
@@ -1561,6 +1576,7 @@ function MatchWorkspace({
           </label>
         </div>
       </section>
+      )}
 
       <div className="chat-thread">
         {loading ? (
@@ -1576,7 +1592,11 @@ function MatchWorkspace({
             </article>
           ))
         ) : (
-          <p className="chat-empty-copy">No messages yet. Start coordinating the tee time.</p>
+          <p className="chat-empty-copy">
+            {activeMatch.mode === "social"
+              ? "No messages yet. Start with where you like to play and when you usually get out."
+              : "No messages yet. Start coordinating the tee time."}
+          </p>
         )}
       </div>
 
@@ -1591,7 +1611,11 @@ function MatchWorkspace({
         <input
           className="chat-input"
           type="text"
-          placeholder="Message about arrival time, carts, side game, or meeting spot"
+          placeholder={
+            activeMatch.mode === "social"
+              ? "Message about favorite courses, usual play times, or planning a future round"
+              : "Message about arrival time, carts, side game, or meeting spot"
+          }
           value={draftMessage}
           onChange={(event) => setDraftMessage(event.target.value)}
         />
@@ -1604,9 +1628,11 @@ function MatchWorkspace({
         <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "report", "Reported from demo trust tools")}>
           Report
         </button>
-        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "no_show", "No-show flagged in demo")}>
-          Flag no-show
-        </button>
+        {activeMatch.mode === "social" ? null : (
+          <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "no_show", "No-show flagged in demo")}>
+            Flag no-show
+          </button>
+        )}
         <select className="compact-select" value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
           {CANCEL_REASONS.map((reason) => (
             <option key={reason} value={reason}>
@@ -1614,17 +1640,20 @@ function MatchWorkspace({
             </option>
           ))}
         </select>
-        <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "cancel", cancelReason)}>
-          Log cancellation
-        </button>
+        {activeMatch.mode === "social" ? null : (
+          <button className="ghost-button" type="button" onClick={() => onTrustAction(activeMatch.id, "cancel", cancelReason)}>
+            Log cancellation
+          </button>
+        )}
         <button className="ghost-button danger" type="button" onClick={() => onTrustAction(activeMatch.id, "block", "Blocked from demo trust center")}>
           Block golfer
         </button>
         <button className="match-action" type="button" onClick={() => onRebookRound(activeMatch.profile.id)}>
-          Rebook this group
+          {activeMatch.mode === "social" ? "Invite to a future round" : "Rebook this group"}
         </button>
       </div>
 
+      {activeMatch.mode === "social" ? null : (
       <div className="rating-panel">
         <div>
           <p className="topbar-label">Post-round reputation</p>
@@ -1704,6 +1733,7 @@ function MatchWorkspace({
           </button>
         </div>
       </div>
+      )}
     </section>
   );
 }
@@ -1842,21 +1872,43 @@ export default function MatchApp({
         </div>
 
         <div className="value-grid">
-          <article>
-            <span>01</span>
-            <h2>Tee-time first</h2>
-            <p>The product starts with a real round, then builds discovery, trust, and rebooking around it.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h2>Golf-native trust</h2>
-            <p>No-shows, cancellations, pace ratings, and would-play-again signals create a believable marketplace.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h2>Repeat rounds</h2>
-            <p>Previous partners, round logs, and re-invites make the app feel sticky instead of one-off.</p>
-          </article>
+          {marketWindow === "groups" ? (
+            <>
+              <article>
+                <span>01</span>
+                <h2>Tee-time first</h2>
+                <p>The product starts with a real round, then builds discovery, trust, and rebooking around it.</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h2>Golf-native trust</h2>
+                <p>No-shows, cancellations, pace ratings, and would-play-again signals create a believable marketplace.</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h2>Repeat rounds</h2>
+                <p>Previous partners, round logs, and re-invites make the app feel sticky instead of one-off.</p>
+              </article>
+            </>
+          ) : (
+            <>
+              <article>
+                <span>01</span>
+                <h2>Friend-first discovery</h2>
+                <p>Use this lane to meet golfers you would actually enjoy playing with before any tee time exists.</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h2>Availability and vibe</h2>
+                <p>Find people with similar schedules, personality, pace, and playing style for future rounds.</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h2>Start the conversation</h2>
+                <p>Connect, chat, and decide later if you want to set up a tee time together.</p>
+              </article>
+            </>
+          )}
         </div>
 
         <section className="hero-showcase">
@@ -1873,7 +1925,7 @@ export default function MatchApp({
           </article>
         </section>
 
-        {featuredCourse ? (
+        {featuredCourse && marketWindow === "groups" ? (
           <section className="featured-course-card">
             <p className="topbar-label">Featured course</p>
             <h3>{featuredCourse.name}</h3>
@@ -1901,9 +1953,9 @@ export default function MatchApp({
               </p>
             </div>
             <div className="topbar-actions">
-              <button className="ghost-button" type="button" onClick={onRefresh}>
-                Refresh deck
-              </button>
+                <button className="ghost-button" type="button" onClick={onRefresh}>
+                {marketWindow === "social" ? "Refresh golfers" : "Refresh deck"}
+                </button>
               <button className="ghost-button" type="button" onClick={onLogout}>
                 Log out
               </button>
@@ -1948,7 +2000,7 @@ export default function MatchApp({
             </section>
           ) : null}
 
-          {activeTab === "tee-time" ? (
+          {marketWindow === "groups" && activeTab === "tee-time" ? (
             <>
               <section className={`intro-grid intro-grid-flow lane-intro-grid lane-intro-grid-${marketWindow}`.trim()}>
                 <DemoSpotlight teeTime={teeTime} deck={windowDeck} matches={matches} notifications={notifications} invites={invites} />
@@ -2136,9 +2188,16 @@ export default function MatchApp({
             )
           ) : null}
 
-          <MatchList matches={matches} activeMatchId={activeMatch?.id} onOpenMatch={onOpenMatch} onCancelMatch={onCancelMatch} />
+          <MatchList
+            matches={matches.filter((match) => (marketWindow === "social" ? match.mode === "social" : match.mode !== "social"))}
+            activeMatchId={activeMatch?.id}
+            onOpenMatch={onOpenMatch}
+            onCancelMatch={onCancelMatch}
+            marketWindow={marketWindow}
+          />
           <MatchWorkspace
             activeMatch={activeMatch}
+            marketWindow={marketWindow}
             messages={activeMessages}
             loading={chatLoading}
             onSendMessage={onSendMessage}
