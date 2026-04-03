@@ -842,6 +842,17 @@ input[type="range"] {
   border: 1px solid rgba(16, 34, 23, 0.08);
 }
 
+.listing-card-marketplace {
+  background: linear-gradient(180deg, rgba(255, 254, 250, 0.92), rgba(245, 239, 227, 0.84));
+  box-shadow: 0 18px 32px rgba(19, 33, 22, 0.08);
+}
+
+.listing-highlights-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .listing-image {
   min-height: 170px;
   border-radius: 20px;
@@ -1304,6 +1315,13 @@ input[type="range"] {
 
 .lane-social .profile-handicap {
   min-width: 96px;
+}
+
+.lane-groups .profile-handicap {
+  min-width: 112px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .profile-card.is-next {

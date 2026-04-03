@@ -44,13 +44,19 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
         <div className="card-title-row">
           <div>
             <h3 className="profile-name">
-              {profile.type === "Single" ? `${profile.name}, ${profile.age}` : profile.name}
+              {marketWindow === "groups"
+                ? profile.listingTitle ?? profile.name
+                : profile.type === "Single"
+                  ? `${profile.name}, ${profile.age}`
+                  : profile.name}
             </h3>
             <p className="profile-meta">
-              {profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}
+              {marketWindow === "groups"
+                ? profile.listingSubhead ?? `${profile.course} · ${profile.teeTime}`
+                : profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}
             </p>
           </div>
-          <div className="profile-handicap">{marketWindow === "social" ? profile.socialStyle : profile.handicap}</div>
+          <div className="profile-handicap">{marketWindow === "social" ? profile.socialStyle : profile.surfaceBadge}</div>
         </div>
 
         <p className="profile-bio">{profile.bio}</p>
@@ -72,6 +78,25 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
             <div className="social-friend-card">
               <strong>Good to know</strong>
               <span>{labelize(profile.mobilityPreference)} · {labelize(profile.musicPreference)}</span>
+            </div>
+          </div>
+        ) : marketWindow === "groups" ? (
+          <div className="social-friend-grid">
+            <div className="social-friend-card">
+              <strong>Host group</strong>
+              <span>{profile.hostSummary}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Booking</strong>
+              <span>{profile.surfaceMeta}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Looking for</strong>
+              <span>{profile.preferredVibe} vibe · {profile.fit}</span>
+            </div>
+            <div className="social-friend-card">
+              <strong>Round setup</strong>
+              <span>{profile.listingHighlights?.join(" · ")}</span>
             </div>
           </div>
         ) : (
@@ -131,7 +156,7 @@ function ProfileCard({ profile, offset, dragX, dragging, onPointerDown, onOpenPr
         </div>
 
         <button className="ghost-button compact detail-button" type="button" onClick={() => onOpenProfile?.(profile)}>
-          View full profile
+          {marketWindow === "groups" ? "View listing" : "View full profile"}
         </button>
       </div>
     </article>

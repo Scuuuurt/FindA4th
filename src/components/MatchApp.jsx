@@ -564,9 +564,18 @@ function buildWindowDeck(deck, marketWindow) {
       .map((profile) => ({
         ...profile,
         marketWindow,
-        surfaceType: "Live group",
+        surfaceType: "Active tee time",
         surfaceBadge: `${profile.slots} open slot${profile.slots > 1 ? "s" : ""}`,
-        surfaceMeta: `${profile.course} · ${profile.teeTime}`
+        surfaceMeta: `${profile.course} · ${profile.teeTime}`,
+        listingTitle: `${profile.course} · ${profile.teeTime}`,
+        listingSubhead: `${profile.slots} spot${profile.slots > 1 ? "s" : ""} open · ${profile.handicap} · ${profile.distanceMiles} miles away`,
+        listingHighlights: [
+          profile.pace,
+          profile.mobilityPreference === "either" ? "Walk or cart" : profile.mobilityPreference,
+          profile.musicPreference === "music_okay" ? "Music okay" : "No music"
+        ],
+        hostSummary: `${profile.name} · ${profile.age} · ${profile.vibe}`,
+        requestCta: "Request spot"
       }));
   }
 
@@ -579,7 +588,8 @@ function buildWindowDeck(deck, marketWindow) {
       surfaceBadge: "Future round",
       surfaceMeta: `${profile.homeCourse} · ${profile.availableDays.join(" / ")} · ${profile.availabilityWindow}`,
       fit: "Good fit for a future round",
-      tags: [...profile.tags, "No tee time posted yet"]
+      tags: [...profile.tags, "No tee time posted yet"],
+      requestCta: "Connect"
     }));
 }
 
@@ -980,20 +990,30 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
       </div>
       <div className="listing-grid">
         {deck.map((profile) => (
-          <article className="listing-card" key={profile.id}>
+          <article className={`listing-card ${marketWindow === "groups" ? "listing-card-marketplace" : ""}`.trim()} key={profile.id}>
             <div className="listing-image" style={{ backgroundImage: profile.image }} />
             <div className="listing-copy">
               <div className="notification-headline-row">
-                <strong>{profile.name}</strong>
+                <strong>{marketWindow === "groups" ? profile.listingTitle : profile.name}</strong>
                 <span className="tag verified">{profile.compatibility?.score ?? 0}% fit</span>
               </div>
-              <p>{profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}</p>
+              <p>{marketWindow === "groups" ? profile.listingSubhead : profile.surfaceMeta ?? `${profile.course} · ${profile.teeTime}`}</p>
               <div className="history-meta-row">
                 <span>{profile.surfaceType ?? profile.type}</span>
-                <span>{marketWindow === "social" ? profile.socialStyle : profile.handicap}</span>
+                <span>{marketWindow === "social" ? profile.socialStyle : profile.hostSummary}</span>
                 <span>{profile.surfaceBadge ?? `${profile.slots} spot${profile.slots > 1 ? "s" : ""}`}</span>
               </div>
+              {marketWindow === "groups" ? (
+                <div className="listing-highlights-row">
+                  {profile.listingHighlights.map((item) => (
+                    <span className="summary-chip" key={item}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {marketWindow === "social" ? <p>{profile.bio}</p> : null}
+              {marketWindow === "groups" ? <p>{profile.bio}</p> : null}
               <div className="tag-row">
                 {(profile.compatibility?.reasons ?? []).map((reason) => (
                   <span className="tag" key={reason}>
@@ -1009,7 +1029,7 @@ function ListingsBoard({ deck, onOpenProfile, onSwipe, marketWindow }) {
                   Pass
                 </button>
                 <button className="match-action" type="button" onClick={() => onSwipe("right", profile.id)}>
-                  {marketWindow === "social" ? "Connect" : "Match"}
+                  {profile.requestCta}
                 </button>
               </div>
             </div>
