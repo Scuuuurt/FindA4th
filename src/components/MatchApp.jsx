@@ -1792,8 +1792,8 @@ export default function MatchApp({
   }, [filter, onFilterChange]);
 
   return (
-    <div className="app-shell">
-      <section className="hero-panel hero-panel-redesign">
+    <div className={`app-shell lane-${marketWindow}`.trim()}>
+      <section className={`hero-panel hero-panel-redesign lane-panel lane-panel-${marketWindow}`.trim()}>
         <div className="hero-ribbon">
           <span className="hero-ribbon-mark"></span>
           Private matchmaker for incomplete tee times
@@ -1887,9 +1887,9 @@ export default function MatchApp({
         ) : null}
       </section>
 
-      <main className="phone-frame">
+      <main className={`phone-frame lane-frame lane-frame-${marketWindow}`.trim()}>
         <div className="phone-glow"></div>
-        <section className="app-card app-card-redesign">
+        <section className={`app-card app-card-redesign lane-app-card lane-app-card-${marketWindow}`.trim()}>
           <header className="topbar">
             <div>
               <p className="topbar-label">FindA4th</p>
@@ -1950,7 +1950,7 @@ export default function MatchApp({
 
           {activeTab === "tee-time" ? (
             <>
-              <section className="intro-grid intro-grid-flow">
+              <section className={`intro-grid intro-grid-flow lane-intro-grid lane-intro-grid-${marketWindow}`.trim()}>
                 <DemoSpotlight teeTime={teeTime} deck={windowDeck} matches={matches} notifications={notifications} invites={invites} />
                 <div className="intro-sidecar">
                   <FlowGuide teeTime={teeTime} matches={matches} roundHistory={roundHistory} onJump={setActiveTab} />
@@ -1998,7 +1998,7 @@ export default function MatchApp({
 
           {activeTab === "discovery" ? (
             <>
-              <section className="discovery-header-panel">
+              <section className={`discovery-header-panel discovery-header-panel-${marketWindow}`.trim()}>
                 <div>
                   <p className="topbar-label">{marketWindow === "social" ? "Social discovery" : "Group discovery"}</p>
                   <h3>
